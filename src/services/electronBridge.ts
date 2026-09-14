@@ -1072,6 +1072,49 @@ class WebMockDatabase implements ElectronAPI {
     return saved;
   }
 
+  async saveTasks(taskList: Array<Omit<TaskRecord, 'id' | 'createdAt' | 'updatedAt'>>): Promise<TaskRecord[]> {
+    const list = await this.getTasks();
+    const now = new Date().toISOString();
+    const emps = await this.getEmployees();
+    let maxId = list.length > 0 ? Math.max(...list.map((t) => t.id)) : 0;
+    const createdTasks: TaskRecord[] = [];
+
+    for (const task of taskList) {
+      maxId += 1;
+      let assigneeName = task.assigneeName || '';
+      if (task.assigneeId && !assigneeName) {
+        const emp = emps.find((e) => e.id === task.assigneeId);
+        if (emp) assigneeName = emp.fullName;
+      }
+
+      const saved: TaskRecord = {
+        ...task,
+        id: maxId,
+        assigneeName,
+        actualEndDate: task.actualEndDate || '',
+        result: task.result || '',
+        frozenDaysRemaining: task.frozenDaysRemaining ?? null,
+        createdAt: now,
+        updatedAt: now,
+      };
+      if (saved.isAccepted) {
+        saved.isCompleted = true;
+        if (saved.actualEndDate) {
+          saved.frozenDaysRemaining = calculateDaysRemaining(saved.plannedEndDate, true, null, saved.actualEndDate);
+        } else {
+          saved.frozenDaysRemaining = null;
+        }
+      }
+      createdTasks.push(saved);
+      list.unshift(saved);
+      await this.addLog('info', 'db', `Создана новая задача №${saved.id}: "${saved.task}" для исполнителя "${assigneeName || 'Не назначен'}"`);
+    }
+
+    localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(list));
+    this.touchUpdateTime();
+    return createdTasks;
+  }
+
   async deleteTask(id: number): Promise<{ success: boolean }> {
     const list = await this.getTasks();
     const filtered = list.filter((t) => t.id !== id);

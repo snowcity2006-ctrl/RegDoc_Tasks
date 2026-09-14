@@ -1054,13 +1054,13 @@ export const DocumentFormModal: React.FC<DocumentFormModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsRelatedModalOpen(true)}
-                  className="px-4 py-2.5 bg-[#0F1115] hover:bg-[#1F222B] text-gray-200 hover:text-white rounded-xl text-xs font-semibold flex items-center gap-2 border border-[#2D3139] hover:border-blue-500/50 shadow-xs transition-colors cursor-pointer whitespace-nowrap"
+                  className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white dark:bg-[#0F1115] dark:hover:bg-[#1F222B] dark:text-gray-200 dark:hover:text-white rounded-xl text-xs font-semibold flex items-center gap-2 border border-blue-600 dark:border-[#2D3139] hover:border-blue-500/50 shadow-xs shadow-blue-500/20 dark:shadow-none transition-colors cursor-pointer whitespace-nowrap"
                   title="Открыть форму «Связанные документы»"
                 >
-                  <Link2 className="w-4 h-4 text-blue-400 shrink-0" />
+                  <Link2 className="w-4 h-4 text-white dark:text-blue-400 shrink-0" />
                   <span>Добавить связанные документы</span>
                   {relatedDocIds.length > 0 && (
-                    <span className="ml-1 px-2 py-0.5 bg-blue-600/30 text-blue-300 border border-blue-500/40 rounded-full text-[11px] font-bold">
+                    <span className="ml-1 px-2 py-0.5 bg-white/20 text-white border border-white/30 dark:bg-blue-600/30 dark:text-blue-300 dark:border-blue-500/40 rounded-full text-[11px] font-bold">
                       {relatedDocIds.length}
                     </span>
                   )}
@@ -1070,16 +1070,16 @@ export const DocumentFormModal: React.FC<DocumentFormModalProps> = ({
 
             {/* Отображение выбранных связанных документов */}
             {relatedDocIds.length > 0 && (
-              <div className="mt-2.5 p-2.5 bg-[#0F1115]/80 border border-[#2D3139] rounded-xl">
+              <div className="mt-2.5 p-2.5 bg-blue-600 text-white border border-blue-500 dark:bg-[#0F1115]/80 dark:border-[#2D3139] dark:text-[#E0E0E0] rounded-xl shadow-xs shadow-blue-500/20 dark:shadow-none">
                 <div className="flex items-center justify-between gap-2 mb-1.5">
-                  <span className="text-[11px] font-semibold text-gray-400 flex items-center gap-1">
-                    <Link2 className="w-3 h-3 text-blue-400" />
+                  <span className="text-[11px] font-semibold text-white dark:text-gray-400 flex items-center gap-1">
+                    <Link2 className="w-3 h-3 text-white dark:text-blue-400" />
                     Выбранные связанные документы ({relatedDocIds.length}):
                   </span>
                   <button
                     type="button"
                     onClick={() => setRelatedDocIds([])}
-                    className="text-[10px] text-gray-400 hover:text-red-400 transition-colors cursor-pointer"
+                    className="text-[10px] text-blue-100 hover:text-white dark:text-gray-400 dark:hover:text-red-400 transition-colors cursor-pointer"
                   >
                     Очистить все
                   </button>
@@ -1094,14 +1094,14 @@ export const DocumentFormModal: React.FC<DocumentFormModalProps> = ({
                     return (
                       <span
                         key={rId}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#1F222B] border border-[#2D3139] text-[#E0E0E0] rounded-lg text-xs max-w-xs truncate"
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-700/60 border border-blue-400/40 text-white dark:bg-[#1F222B] dark:border-[#2D3139] dark:text-[#E0E0E0] rounded-lg text-xs max-w-xs truncate"
                         title={label}
                       >
                         <span className="truncate">{label}</span>
                         <button
                           type="button"
                           onClick={() => setRelatedDocIds((prev) => prev.filter((id) => id !== rId))}
-                          className="text-gray-400 hover:text-red-400 p-0.5 transition-colors cursor-pointer"
+                          className="text-blue-200 hover:text-white dark:text-gray-400 dark:hover:text-red-400 p-0.5 transition-colors cursor-pointer"
                           title="Удалить связь"
                         >
                           <X className="w-3 h-3" />

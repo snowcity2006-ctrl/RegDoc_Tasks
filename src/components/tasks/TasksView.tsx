@@ -10,6 +10,7 @@ interface TasksViewProps {
   tasks: TaskRecord[];
   employees: Employee[];
   onSaveTask: (task: Omit<TaskRecord, 'id' | 'createdAt' | 'updatedAt'> & { id?: number }) => Promise<void>;
+  onSaveTasks?: (taskList: Array<Omit<TaskRecord, 'id' | 'createdAt' | 'updatedAt'>>) => Promise<void>;
   onDeleteTask: (id: number) => Promise<void>;
   onToggleTaskCheck: (id: number, field: 'isCompleted' | 'isAccepted', value: boolean) => Promise<void>;
   onOpenNewEmployeeModal?: () => void;
@@ -20,6 +21,7 @@ export const TasksView: React.FC<TasksViewProps> = ({
   tasks,
   employees,
   onSaveTask,
+  onSaveTasks,
   onDeleteTask,
   onToggleTaskCheck,
   onOpenNewEmployeeModal,
@@ -143,6 +145,17 @@ export const TasksView: React.FC<TasksViewProps> = ({
     );
   };
 
+  const handleSaveMultiple = async (taskList: Array<Omit<TaskRecord, 'id' | 'createdAt' | 'updatedAt'>>) => {
+    if (onSaveTasks) {
+      await onSaveTasks(taskList);
+    } else {
+      for (const t of taskList) {
+        await onSaveTask(t);
+      }
+      showNotification?.(`Успешно создано задач: ${taskList.length} (для каждого выбранного исполнителя)`, 'success');
+    }
+  };
+
   const handleChangeActualDate = async (id: number, actualEndDate: string) => {
     const task = tasks.find((t) => t.id === id);
     if (!task) return;
@@ -226,6 +239,7 @@ export const TasksView: React.FC<TasksViewProps> = ({
             setEditingTask(null);
           }}
           onSave={handleSave}
+          onSaveMultiple={handleSaveMultiple}
           employees={employees}
           tasks={tasks}
           initialData={editingTask}

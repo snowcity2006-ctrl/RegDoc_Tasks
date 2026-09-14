@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   CheckSquare,
   X,
@@ -10,7 +10,10 @@ import {
   Clock,
   Maximize2,
   Minimize2,
-  CheckCircle2
+  CheckCircle2,
+  Search,
+  ChevronDown,
+  Users
 } from 'lucide-react';
 import { TaskRecord, Employee } from '../../types';
 import { calculateDaysRemaining, getTaskStatusInfo } from '../../utils/taskUtils';
@@ -19,6 +22,7 @@ interface TaskFormModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (task: Omit<TaskRecord, 'id' | 'createdAt' | 'updatedAt'> & { id?: number }) => Promise<void>;
+  onSaveMultiple?: (tasks: Array<Omit<TaskRecord, 'id' | 'createdAt' | 'updatedAt'>>) => Promise<void>;
   employees: Employee[];
   initialData?: TaskRecord | null;
   onOpenNewEmployeeModal?: () => void;
@@ -29,6 +33,7 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
   isOpen,
   onClose,
   onSave,
+  onSaveMultiple,
   employees,
   initialData,
   onOpenNewEmployeeModal,
@@ -45,8 +50,17 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
   const [saving, setSaving] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
 
+  // Множественный выбор исполнителей и ручной поиск с фильтрацией
+  const [isMultipleAssignees, setIsMultipleAssignees] = useState(false);
+  const [selectedAssigneeIds, setSelectedAssigneeIds] = useState<number[]>([]);
+  const [assigneeSearchQuery, setAssigneeSearchQuery] = useState('');
+  const [isAssigneeDropdownOpen, setIsAssigneeDropdownOpen] = useState(false);
+
+  const assigneeDropdownRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
   // Расчет загрузки исполнителей в % от задач на исполнении (задача считается выполненной только при наличии отметки "Принято")
-  const workloadMap = React.useMemo(() => {
+  const workloadMap = useMemo(() => {
     const inExecution = tasks.filter((t) => !t.isAccepted);
     const total = inExecution.length;
     const map: Record<number, { count: number; percentageStr: string }> = {};
@@ -70,6 +84,8 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
       setIsCompleted(Boolean(initialData.isCompleted));
       setIsAccepted(Boolean(initialData.isAccepted));
       setAssigneeId(initialData.assigneeId ?? '');
+      setSelectedAssigneeIds(initialData.assigneeId ? [initialData.assigneeId] : []);
+      setIsMultipleAssignees(false);
       setResult(initialData.result || '');
     } else {
       setTaskText('');
@@ -80,11 +96,104 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
       setActualEndDate('');
       setIsCompleted(false);
       setIsAccepted(false);
-      setAssigneeId(employees.length > 0 ? employees[0].id : '');
+      const defaultAssigneeId = employees.length > 0 ? employees[0].id : '';
+      setAssigneeId(defaultAssigneeId);
+      setSelectedAssigneeIds(defaultAssigneeId ? [defaultAssigneeId] : []);
+      setIsMultipleAssignees(false);
       setResult('');
     }
+    setAssigneeSearchQuery('');
+    setIsAssigneeDropdownOpen(false);
     setError(null);
   }, [initialData, isOpen, employees]);
+
+  // Закрытие выпадающего списка при клике вне компонента
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (assigneeDropdownRef.current && !assigneeDropdownRef.current.contains(e.target as Node)) {
+        setIsAssigneeDropdownOpen(false);
+      }
+    };
+    if (isAssigneeDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isAssigneeDropdownOpen]);
+
+  // Автофокус на поле ввода поиска при открытии выпадающего списка
+  useEffect(() => {
+    if (isAssigneeDropdownOpen) {
+      setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 50);
+    } else {
+      setAssigneeSearchQuery('');
+    }
+  }, [isAssigneeDropdownOpen]);
+
+  // Фильтрация списка сотрудников в реальном времени при ручном наборе символов
+  const filteredEmployees = useMemo(() => {
+    if (!assigneeSearchQuery.trim()) return employees;
+    const q = assigneeSearchQuery.toLowerCase().trim();
+    return employees.filter((emp) => {
+      const nameMatch = emp.fullName.toLowerCase().includes(q);
+      const posMatch = (emp.position || '').toLowerCase().includes(q);
+      const deptMatch = (emp.departmentShortName || '').toLowerCase().includes(q);
+      const orgMatch = (emp.organizationName || '').toLowerCase().includes(q);
+      return nameMatch || posMatch || deptMatch || orgMatch;
+    });
+  }, [employees, assigneeSearchQuery]);
+
+  const handleToggleAssignee = (id: number) => {
+    if (initialData) {
+      // При редактировании задачи - выбор одного ответственного
+      setAssigneeId(id);
+      setSelectedAssigneeIds([id]);
+      setIsMultipleAssignees(false);
+      setIsAssigneeDropdownOpen(false);
+      return;
+    }
+    // При создании новой задачи - прямое переключение чекбокса напротив фамилии
+    setSelectedAssigneeIds((prev) => {
+      const exists = prev.includes(id);
+      const updated = exists ? prev.filter((item) => item !== id) : [...prev, id];
+      setAssigneeId(updated.length > 0 ? updated[0] : '');
+      setIsMultipleAssignees(updated.length > 1);
+      return updated;
+    });
+  };
+
+  const handleSelectAllFiltered = () => {
+    const idsToAdd = filteredEmployees.map((e) => e.id);
+    setSelectedAssigneeIds((prev) => {
+      const updated = Array.from(new Set([...prev, ...idsToAdd]));
+      setAssigneeId(updated.length > 0 ? updated[0] : '');
+      setIsMultipleAssignees(updated.length > 1);
+      return updated;
+    });
+  };
+
+  const handleClearAllSelected = () => {
+    setSelectedAssigneeIds([]);
+    setAssigneeId('');
+    setIsMultipleAssignees(false);
+  };
+
+  const handleSelectSingleAssignee = (id: number | '') => {
+    setAssigneeId(id);
+    if (id) {
+      setSelectedAssigneeIds([id]);
+      setIsMultipleAssignees(false);
+    } else {
+      setSelectedAssigneeIds([]);
+      setIsMultipleAssignees(false);
+    }
+    if (initialData) {
+      setIsAssigneeDropdownOpen(false);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -124,14 +233,46 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
       setSaving(true);
       setError(null);
 
-      const selectedEmp = employees.find((e) => e.id === Number(assigneeId));
-      const assigneeName = selectedEmp ? selectedEmp.fullName : '';
-
       // Если задача принята, пересчитываем значение как разницу между "План" - "Факт" (при наличии факта)
       let frozenDays: number | null = null;
       if (isAccepted && actualEndDate) {
         frozenDays = calculateDaysRemaining(plannedEndDate, true, null, actualEndDate);
       }
+
+      // При множественном выборе исполнителей: добавляем отдельную задачу в БД для каждого (пункт 2)
+      if (!initialData && selectedAssigneeIds.length > 1) {
+        const taskListToCreate = selectedAssigneeIds.map((empId) => {
+          const emp = employees.find((e) => e.id === empId);
+          return {
+            task: taskText.trim(),
+            plannedEndDate,
+            actualEndDate: actualEndDate || '',
+            isCompleted,
+            isAccepted,
+            frozenDaysRemaining: frozenDays,
+            assigneeId: empId,
+            assigneeName: emp ? emp.fullName : '',
+            result: result.trim(),
+          };
+        });
+
+        if (onSaveMultiple) {
+          await onSaveMultiple(taskListToCreate);
+        } else {
+          for (const t of taskListToCreate) {
+            await onSave(t);
+          }
+        }
+        onClose();
+        return;
+      }
+
+      // Одиночный выбор исполнителя или режим редактирования
+      const effectiveAssigneeId = !initialData && selectedAssigneeIds.length === 1
+        ? selectedAssigneeIds[0]
+        : (assigneeId !== '' ? Number(assigneeId) : null);
+      const selectedEmp = effectiveAssigneeId ? employees.find((e) => e.id === effectiveAssigneeId) : undefined;
+      const assigneeName = selectedEmp ? selectedEmp.fullName : '';
 
       await onSave({
         ...(initialData ? { id: initialData.id } : {}),
@@ -141,7 +282,7 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
         isCompleted,
         isAccepted,
         frozenDaysRemaining: frozenDays,
-        assigneeId: assigneeId ? Number(assigneeId) : null,
+        assigneeId: effectiveAssigneeId,
         assigneeName,
         result: result.trim(),
       });
@@ -161,16 +302,19 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
         }`}
       >
         {/* Заголовок */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#2D3139] bg-[#1C202A]/80">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-blue-700/50 bg-blue-600 text-white">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-blue-600/10 text-blue-400 border border-blue-500/20">
-              <CheckSquare className="w-5 h-5" />
+            <div className="p-2 rounded-xl bg-white/20 text-white border border-white/30">
+              <CheckSquare className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-[#E0E0E0]">
+              <h3
+                id="task-form-modal-title"
+                className="text-base font-bold text-white !text-white"
+              >
                 {initialData ? 'Редактирование задачи' : 'Создание новой задачи'}
               </h3>
-              <p className="text-xs text-gray-400 mt-0.5">
+              <p className="text-xs text-blue-100 mt-0.5">
                 Контроль исполнения поручений и отслеживание сроков
               </p>
             </div>
@@ -179,7 +323,7 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
             <button
               type="button"
               onClick={() => setIsMaximized(!isMaximized)}
-              className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-[#2D3139] transition-colors"
+              className="p-1.5 rounded-lg text-blue-100 hover:text-white hover:bg-white/15 transition-colors cursor-pointer"
               title={isMaximized ? 'Свернуть' : 'Развернуть'}
             >
               {isMaximized ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
@@ -187,7 +331,7 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-[#2D3139] transition-colors"
+              className="p-1.5 rounded-lg text-blue-100 hover:text-white hover:bg-white/15 transition-colors cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -280,38 +424,338 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
 
           {/* Ответственный */}
           <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-2">
               <label className="block text-xs font-medium text-gray-300 flex items-center gap-1.5">
                 <User className="w-3.5 h-3.5 text-blue-400" />
                 <span>Ответственный</span>
+                {!initialData && selectedAssigneeIds.length > 1 && (
+                  <span className="ml-1 text-[11px] text-blue-400 font-semibold bg-blue-900/30 border border-blue-500/30 px-1.5 py-0.5 rounded-md">
+                    выбрано: {selectedAssigneeIds.length}
+                  </span>
+                )}
               </label>
-              {onOpenNewEmployeeModal && (
-                <button
-                  type="button"
-                  onClick={onOpenNewEmployeeModal}
-                  className="text-[11px] text-blue-400 hover:text-blue-300 transition-colors cursor-pointer"
-                >
-                  + Новый сотрудник
-                </button>
+
+              <div className="flex items-center gap-3">
+                {onOpenNewEmployeeModal && (
+                  <button
+                    type="button"
+                    onClick={onOpenNewEmployeeModal}
+                    className="text-[11px] text-blue-400 hover:text-blue-300 transition-colors cursor-pointer"
+                  >
+                    + Новый сотрудник
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Интерактивный выпадающий список с ручным набором и фильтрацией */}
+            <div ref={assigneeDropdownRef} className="relative w-full">
+              {/* Триггер выпадающего списка */}
+              <div
+                id="trigger-task-assignee-dropdown"
+                onClick={() => setIsAssigneeDropdownOpen((prev) => !prev)}
+                className={`w-full min-h-[42px] px-3.5 py-2 bg-[#0F1115] border rounded-xl text-xs flex items-center justify-between gap-2 cursor-pointer transition-colors ${
+                  isAssigneeDropdownOpen
+                    ? 'border-blue-500 ring-1 ring-blue-500'
+                    : 'border-[#2D3139] hover:border-gray-500'
+                }`}
+              >
+                {/* Содержимое триггера */}
+                <div className="flex items-center gap-1.5 flex-1 flex-wrap overflow-hidden min-w-0">
+                  {selectedAssigneeIds.length === 0 ? (
+                    <span className="text-gray-400 select-none">
+                      Не назначен (нажмите для выбора исполнителей)...
+                    </span>
+                  ) : selectedAssigneeIds.length === 1 ? (
+                    (() => {
+                      const selectedEmp = employees.find((e) => e.id === selectedAssigneeIds[0]);
+                      if (!selectedEmp) {
+                        return (
+                          <span className="text-gray-400 select-none">
+                            Не назначен (нажмите для выбора)
+                          </span>
+                        );
+                      }
+                      const wl = workloadMap.map[selectedEmp.id];
+                      return (
+                        <div className="flex items-center justify-between w-full min-w-0 pr-1">
+                          <div className="flex items-center gap-2 truncate">
+                            <span className="font-semibold text-[#E0E0E0] truncate">
+                              {selectedEmp.fullName}
+                            </span>
+                            {selectedEmp.position && (
+                              <span className="text-[11px] text-gray-400 truncate">
+                                ({selectedEmp.position})
+                              </span>
+                            )}
+                          </div>
+                          {wl && (
+                            <span className="font-mono text-[11px] text-blue-300 bg-blue-950/70 border border-blue-500/40 px-1.5 py-0.5 rounded shrink-0">
+                              Загрузка: {wl.percentageStr}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })()
+                  ) : (
+                    <div className="flex items-center gap-1.5 flex-wrap max-w-full">
+                      {selectedAssigneeIds.map((id) => {
+                        const emp = employees.find((e) => e.id === id);
+                        if (!emp) return null;
+                        const wl = workloadMap.map[emp.id];
+                        return (
+                          <span
+                            key={emp.id}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-blue-600/20 text-blue-200 border border-blue-500/30 text-[11px] font-medium"
+                          >
+                            <span className="truncate max-w-[130px]" title={emp.fullName}>
+                              {emp.fullName}
+                            </span>
+                            {wl && (
+                              <span
+                                className="text-[10px] font-mono text-blue-300 bg-blue-900/50 px-1 rounded"
+                                title={`Загрузка: ${wl.percentageStr}`}
+                              >
+                                {wl.percentageStr}
+                              </span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleToggleAssignee(emp.id);
+                              }}
+                              className="hover:text-white rounded-full p-0.5 hover:bg-blue-600/40 text-blue-300 cursor-pointer"
+                              title="Удалить"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-1.5 shrink-0 text-gray-400">
+                  {selectedAssigneeIds.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleClearAllSelected();
+                      }}
+                      className="p-1 rounded hover:bg-[#2D3139] hover:text-white cursor-pointer"
+                      title="Сбросить выбор"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                  <ChevronDown
+                    className={`w-4 h-4 transition-transform duration-200 ${
+                      isAssigneeDropdownOpen ? 'rotate-180 text-blue-400' : ''
+                    }`}
+                  />
+                </div>
+              </div>
+
+              {/* Выпадающее окно со строкой поиска и списком исполнителей */}
+              {isAssigneeDropdownOpen && (
+                <div className="absolute z-50 left-0 right-0 top-full mt-1.5 bg-[#171A21] border border-[#2D3139] rounded-xl shadow-2xl p-3 space-y-2.5 animate-in fade-in zoom-in-95 duration-100 min-w-[320px]">
+                  {/* Поле ручного набора символов с одновременной фильтрацией */}
+                  <div className="relative">
+                    <Search className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      ref={searchInputRef}
+                      id="input-task-assignee-filter"
+                      type="text"
+                      value={assigneeSearchQuery}
+                      onChange={(e) => setAssigneeSearchQuery(e.target.value)}
+                      placeholder="Введите символы для фильтрации (ФИО, должность, отдел)..."
+                      className="w-full pl-9 pr-8 py-2 bg-[#0F1115] border border-[#2D3139] rounded-xl text-xs text-[#E0E0E0] placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                    {assigneeSearchQuery && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setAssigneeSearchQuery('');
+                        }}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white p-0.5 cursor-pointer"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Быстрые действия: количество и выбор всех */}
+                  {!initialData && (
+                    <div className="flex items-center justify-between text-[11px] text-gray-400 px-1 border-b border-[#2D3139]/60 pb-1.5">
+                      <span className="flex items-center gap-1.5">
+                        <span>Найдено:</span>
+                        <strong className="text-gray-200">{filteredEmployees.length}</strong>
+                        {selectedAssigneeIds.length > 0 && (
+                          <span className="text-blue-400 font-semibold ml-1">
+                            (отмечено: {selectedAssigneeIds.length})
+                          </span>
+                        )}
+                      </span>
+                      <div className="flex items-center gap-3">
+                        {filteredEmployees.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSelectAllFiltered();
+                            }}
+                            className="text-blue-400 hover:underline cursor-pointer font-medium"
+                          >
+                            Выбрать всех ({filteredEmployees.length})
+                          </button>
+                        )}
+                        {selectedAssigneeIds.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleClearAllSelected();
+                            }}
+                            className="text-rose-400 hover:underline cursor-pointer font-medium"
+                          >
+                            Снять все
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Список сотрудников с надежными интерактивными чекбоксами */}
+                  <div className="max-h-56 overflow-y-auto space-y-1 pr-1">
+                    {/* Опция "Не назначен" */}
+                    <div
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleClearAllSelected();
+                        if (initialData) setIsAssigneeDropdownOpen(false);
+                      }}
+                      className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs cursor-pointer select-none transition-colors ${
+                        selectedAssigneeIds.length === 0
+                          ? 'bg-blue-600/15 text-blue-200 border border-blue-500/30 font-semibold'
+                          : 'text-gray-400 hover:bg-[#1F222B] hover:text-white'
+                      }`}
+                    >
+                      <span>— Не назначен</span>
+                      {selectedAssigneeIds.length === 0 && <Check className="w-3.5 h-3.5 text-blue-400" />}
+                    </div>
+
+                    {filteredEmployees.length === 0 ? (
+                      <div className="py-4 text-center text-gray-500 text-xs">
+                        Сотрудники по запросу не найдены
+                      </div>
+                    ) : (
+                      filteredEmployees.map((emp) => {
+                        const isChecked = selectedAssigneeIds.includes(emp.id);
+                        const wl = workloadMap.map[emp.id];
+
+                        return (
+                          <div
+                            key={emp.id}
+                            id={`item-assignee-${emp.id}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleToggleAssignee(emp.id);
+                            }}
+                            className={`flex items-center justify-between gap-3 px-3 py-2 rounded-lg text-xs cursor-pointer select-none transition-colors ${
+                              isChecked
+                                ? 'bg-blue-600/20 text-blue-100 border border-blue-500/40 font-medium'
+                                : 'text-gray-300 hover:bg-[#1F222B] border border-transparent'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                              {/* Чекбокс с четкой видимой галочкой (Check) */}
+                              <div
+                                id={`checkbox-visual-assignee-${emp.id}`}
+                                className={`w-4 h-4 rounded flex items-center justify-center shrink-0 transition-all border ${
+                                  isChecked
+                                    ? 'bg-blue-600 border-blue-500 text-white shadow-sm'
+                                    : 'border-gray-500 bg-[#0F1115] hover:border-blue-400'
+                                }`}
+                              >
+                                {isChecked && <Check className="w-3.5 h-3.5 stroke-[3] text-white" />}
+                              </div>
+
+                              <div className="flex-1 min-w-0">
+                                <div className={`truncate ${isChecked ? 'font-bold text-white' : 'font-medium text-[#E0E0E0]'}`}>
+                                  {emp.fullName}
+                                </div>
+                                {(emp.position || emp.departmentShortName) && (
+                                  <div className="text-[10px] text-gray-400 truncate mt-0.5">
+                                    {emp.position}
+                                    {emp.position && emp.departmentShortName ? ' • ' : ''}
+                                    {emp.departmentShortName}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            {wl && (
+                              <div className="shrink-0 flex flex-col items-end text-right pl-2">
+                                <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-950/60 border border-blue-500/30 text-blue-300">
+                                  {wl.percentageStr}
+                                </span>
+                                <span className="text-[9px] text-gray-400 mt-0.5">
+                                  {wl.count} в работе
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+
+                  {/* Кнопка закрытия выпадающего меню */}
+                  <div className="pt-2 border-t border-[#2D3139]/80 flex items-center justify-between">
+                    <span className="text-[11px] text-gray-400">
+                      {selectedAssigneeIds.length > 0
+                        ? `Выбрано: ${selectedAssigneeIds.length} сотр.`
+                        : 'Не назначен'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsAssigneeDropdownOpen(false);
+                      }}
+                      className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold cursor-pointer"
+                    >
+                      Готово
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Информационный баннер при множественном выборе (создание нескольких задач в БД) */}
+              {!initialData && selectedAssigneeIds.length > 1 && (
+                <div className="mt-2 p-2.5 bg-blue-950/40 border border-blue-500/30 rounded-xl text-xs text-blue-300 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Users className="w-4 h-4 text-blue-400 shrink-0" />
+                    <span>
+                      Выбрано исполнителей: <strong>{selectedAssigneeIds.length}</strong>. Будет создано{' '}
+                      <strong>{selectedAssigneeIds.length}</strong> отдельных записей в базе данных (по одной для каждого сотрудника).
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleClearAllSelected()}
+                    className="text-[11px] text-blue-300 hover:text-white underline cursor-pointer shrink-0"
+                  >
+                    Очистить
+                  </button>
+                </div>
               )}
             </div>
-            <select
-              id="select-task-assignee"
-              value={assigneeId}
-              onChange={(e) => setAssigneeId(e.target.value ? Number(e.target.value) : '')}
-              className="w-full px-3.5 py-2.5 bg-[#0F1115] border border-[#2D3139] rounded-xl text-xs text-[#E0E0E0] focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-            >
-              <option value="">Не назначен</option>
-              {employees.map((emp) => {
-                const wl = workloadMap.map[emp.id];
-                const loadStr = wl ? ` [Загрузка: ${wl.percentageStr}]` : '';
-                return (
-                  <option key={emp.id} value={emp.id}>
-                    {emp.fullName}{loadStr}{emp.position ? ` (${emp.position})` : ''}
-                  </option>
-                );
-              })}
-            </select>
           </div>
 
           {/* Чекбоксы: Выполнено и Принято */}
@@ -405,7 +849,13 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
               ) : (
                 <Check className="w-4 h-4" />
               )}
-              <span>{initialData ? 'Сохранить изменения' : 'Создать задачу'}</span>
+              <span>
+                {initialData
+                  ? 'Сохранить изменения'
+                  : selectedAssigneeIds.length > 1
+                  ? `Создать задачи (${selectedAssigneeIds.length})`
+                  : 'Создать задачу'}
+              </span>
             </button>
           </div>
         </form>

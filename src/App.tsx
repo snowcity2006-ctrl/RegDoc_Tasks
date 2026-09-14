@@ -346,6 +346,17 @@ export default function App() {
     }
   }, [loadAllData]);
 
+  const handleSaveTasks = useCallback(async (taskList: Array<Omit<TaskRecord, 'id' | 'createdAt' | 'updatedAt'>>) => {
+    try {
+      const created = await electronBridge.saveTasks(taskList);
+      showNotification(`Успешно создано задач: ${created.length} (для каждого выбранного исполнителя)`);
+      await loadAllData();
+    } catch (err: any) {
+      showNotification(`Ошибка сохранения задач: ${err.message}`, 'error');
+      throw err;
+    }
+  }, [loadAllData]);
+
   const handleDeleteTask = useCallback(async (id: number) => {
     try {
       await electronBridge.deleteTask(id);
@@ -607,6 +618,7 @@ export default function App() {
             tasks={tasks}
             employees={employees}
             onSaveTask={handleSaveTask}
+            onSaveTasks={handleSaveTasks}
             onDeleteTask={handleDeleteTask}
             onToggleTaskCheck={handleToggleTaskCheck}
             onOpenNewEmployeeModal={() => setQuickEmpModalOpen(true)}

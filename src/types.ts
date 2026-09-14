@@ -225,6 +225,7 @@ export interface ElectronAPI {
   getTasks: () => Promise<TaskRecord[]>;
   getTaskById: (id: number) => Promise<TaskRecord | null>;
   saveTask: (task: Omit<TaskRecord, 'id' | 'createdAt' | 'updatedAt'> & { id?: number }) => Promise<TaskRecord>;
+  saveTasks: (tasks: Array<Omit<TaskRecord, 'id' | 'createdAt' | 'updatedAt'>>) => Promise<TaskRecord[]>;
   deleteTask: (id: number) => Promise<{ success: boolean }>;
   toggleTaskCheck: (id: number, field: 'isCompleted' | 'isAccepted', value: boolean) => Promise<TaskRecord>;
 
