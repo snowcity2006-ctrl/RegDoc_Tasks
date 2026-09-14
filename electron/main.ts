@@ -289,6 +289,7 @@ function setupIpcHandlers() {
   ipcMain.handle('task:getAll', async () => dbManager.getTasks());
   ipcMain.handle('task:getById', async (_e, id) => dbManager.getTaskById(id));
   ipcMain.handle('task:save', async (_e, task) => dbManager.saveTask(task));
+  ipcMain.handle('task:saveTasks', async (_e, tasks) => dbManager.saveTasks(tasks));
   ipcMain.handle('task:delete', async (_e, id) => dbManager.deleteTask(id));
   ipcMain.handle('task:toggleCheck', async (_e, id, field, value) => dbManager.toggleTaskCheck(id, field, value));
 

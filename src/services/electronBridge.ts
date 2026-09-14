@@ -1640,6 +1640,19 @@ export const electronBridge: ElectronAPI = new Proxy({} as ElectronAPI, {
     if (typeof window !== 'undefined' && window.electronAPI && typeof window.electronAPI[prop] === 'function') {
       return window.electronAPI[prop];
     }
+    // Защитный фолбэк для Electron на Astra Linux:
+    // если приложение запущено в Electron, но в текущем preload еще отсутствует метод saveTasks,
+    // выполняем сохранение каждой копии в реальную SQLite базу поочередно через window.electronAPI.saveTask
+    if (prop === 'saveTasks' && typeof window !== 'undefined' && window.electronAPI && typeof window.electronAPI.saveTask === 'function') {
+      return async (taskList: Array<Omit<TaskRecord, 'id' | 'createdAt' | 'updatedAt'>>) => {
+        const createdList: TaskRecord[] = [];
+        for (const t of taskList) {
+          const res = await window.electronAPI.saveTask(t);
+          createdList.push(res);
+        }
+        return createdList;
+      };
+    }
     // Фолбэк на встроенный браузерный адаптер
     if (prop in webMock) {
       return (webMock[prop] as any).bind(webMock);

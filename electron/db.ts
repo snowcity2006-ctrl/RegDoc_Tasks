@@ -1624,6 +1624,55 @@ class SQLiteDatabaseManager {
     });
   }
 
+  public async saveTasks(taskList: Array<Omit<TaskRecord, 'id' | 'createdAt' | 'updatedAt'>>): Promise<TaskRecord[]> {
+    if (!this.db || !this.db.open) throw new Error('База данных не инициализирована');
+    if (!taskList || taskList.length === 0) return [];
+
+    return await this.runWriteTransaction(() => {
+      const created: TaskRecord[] = [];
+      const stmtInsert = this.db.prepare(`
+        INSERT INTO tasks (
+          task, planned_end_date, actual_end_date,
+          is_completed, is_accepted, frozen_days_remaining,
+          assignee_id, assignee_name, result
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+      const stmtGetEmp = this.db.prepare('SELECT full_name FROM employees WHERE id = ?');
+
+      for (const task of taskList) {
+        const isCompleted = task.isCompleted ? 1 : 0;
+        const isAccepted = task.isAccepted ? 1 : 0;
+        const frozenDays = task.frozenDaysRemaining !== undefined ? task.frozenDaysRemaining : null;
+
+        let assigneeName = task.assigneeName || null;
+        if (task.assigneeId && !assigneeName) {
+          const emp = stmtGetEmp.get(task.assigneeId) as any;
+          if (emp) assigneeName = emp.full_name;
+        }
+
+        const info = stmtInsert.run(
+          task.task,
+          task.plannedEndDate,
+          task.actualEndDate || null,
+          isCompleted,
+          isAccepted,
+          frozenDays,
+          task.assigneeId || null,
+          assigneeName,
+          task.result || null
+        );
+
+        const targetId = Number(info.lastInsertRowid);
+        const saved = this.getTaskById(targetId);
+        if (saved) {
+          created.push(saved);
+        }
+      }
+
+      return created;
+    });
+  }
+
   public async deleteTask(id: number): Promise<{ success: boolean }> {
     return await this.runWriteTransaction(() => {
       this.db.prepare('DELETE FROM tasks WHERE id = ?').run(id);

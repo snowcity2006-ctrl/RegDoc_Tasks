@@ -44,6 +44,7 @@ const api: ElectronAPI = {
   getTasks: () => ipcRenderer.invoke('task:getAll'),
   getTaskById: (id) => ipcRenderer.invoke('task:getById', id),
   saveTask: (task) => ipcRenderer.invoke('task:save', task),
+  saveTasks: (tasks) => ipcRenderer.invoke('task:saveTasks', tasks),
   deleteTask: (id) => ipcRenderer.invoke('task:delete', id),
   toggleTaskCheck: (id, field, value) => ipcRenderer.invoke('task:toggleCheck', id, field, value),
 
