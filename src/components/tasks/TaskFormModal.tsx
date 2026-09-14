@@ -147,15 +147,7 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
   }, [employees, assigneeSearchQuery]);
 
   const handleToggleAssignee = (id: number) => {
-    if (initialData) {
-      // При редактировании задачи - выбор одного ответственного
-      setAssigneeId(id);
-      setSelectedAssigneeIds([id]);
-      setIsMultipleAssignees(false);
-      setIsAssigneeDropdownOpen(false);
-      return;
-    }
-    // При создании новой задачи - прямое переключение чекбокса напротив фамилии
+    // Переключение чекбокса напротив сотрудника (работает как при создании, так и при редактировании)
     setSelectedAssigneeIds((prev) => {
       const exists = prev.includes(id);
       const updated = exists ? prev.filter((item) => item !== id) : [...prev, id];
@@ -189,9 +181,6 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
     } else {
       setSelectedAssigneeIds([]);
       setIsMultipleAssignees(false);
-    }
-    if (initialData) {
-      setIsAssigneeDropdownOpen(false);
     }
   };
 
@@ -239,7 +228,7 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
         frozenDays = calculateDaysRemaining(plannedEndDate, true, null, actualEndDate);
       }
 
-      // При множественном выборе исполнителей: добавляем отдельную задачу в БД для каждого (пункт 2)
+      // При множественном выборе исполнителей для НОВОЙ задачи: добавляем отдельную задачу в БД для каждого
       if (!initialData && selectedAssigneeIds.length > 1) {
         const taskListToCreate = selectedAssigneeIds.map((empId) => {
           const emp = employees.find((e) => e.id === empId);
@@ -267,8 +256,60 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
         return;
       }
 
-      // Одиночный выбор исполнителя или режим редактирования
-      const effectiveAssigneeId = !initialData && selectedAssigneeIds.length === 1
+      // При множественном выборе исполнителей для РЕДАКТИРУЕМОЙ задачи:
+      // Текущая задача обновляется для первого/исходного выбранного исполнителя,
+      // а для остальных отмеченных создаются копии задачи с идентичными параметрами
+      if (initialData && selectedAssigneeIds.length > 1) {
+        const primaryEmpId =
+          initialData.assigneeId && selectedAssigneeIds.includes(initialData.assigneeId)
+            ? initialData.assigneeId
+            : selectedAssigneeIds[0];
+        const primaryEmp = employees.find((e) => e.id === primaryEmpId);
+        const additionalEmpIds = selectedAssigneeIds.filter((id) => id !== primaryEmpId);
+
+        // 1. Обновляем исходную редактируемую задачу
+        await onSave({
+          id: initialData.id,
+          task: taskText.trim(),
+          plannedEndDate,
+          actualEndDate: actualEndDate || '',
+          isCompleted,
+          isAccepted,
+          frozenDaysRemaining: frozenDays,
+          assigneeId: primaryEmpId,
+          assigneeName: primaryEmp ? primaryEmp.fullName : '',
+          result: result.trim(),
+        });
+
+        // 2. Для остальных выбранных исполнителей создаем отдельные задачи в БД
+        const additionalTasksToCreate = additionalEmpIds.map((empId) => {
+          const emp = employees.find((e) => e.id === empId);
+          return {
+            task: taskText.trim(),
+            plannedEndDate,
+            actualEndDate: actualEndDate || '',
+            isCompleted,
+            isAccepted,
+            frozenDaysRemaining: frozenDays,
+            assigneeId: empId,
+            assigneeName: emp ? emp.fullName : '',
+            result: result.trim(),
+          };
+        });
+
+        if (onSaveMultiple) {
+          await onSaveMultiple(additionalTasksToCreate);
+        } else {
+          for (const t of additionalTasksToCreate) {
+            await onSave(t);
+          }
+        }
+        onClose();
+        return;
+      }
+
+      // Одиночный выбор исполнителя или снятие назначения (0 или 1 сотрудник)
+      const effectiveAssigneeId = selectedAssigneeIds.length === 1
         ? selectedAssigneeIds[0]
         : (assigneeId !== '' ? Number(assigneeId) : null);
       const selectedEmp = effectiveAssigneeId ? employees.find((e) => e.id === effectiveAssigneeId) : undefined;
@@ -590,45 +631,43 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
                   </div>
 
                   {/* Быстрые действия: количество и выбор всех */}
-                  {!initialData && (
-                    <div className="flex items-center justify-between text-[11px] text-gray-400 px-1 border-b border-[#2D3139]/60 pb-1.5">
-                      <span className="flex items-center gap-1.5">
-                        <span>Найдено:</span>
-                        <strong className="text-gray-200">{filteredEmployees.length}</strong>
-                        {selectedAssigneeIds.length > 0 && (
-                          <span className="text-blue-400 font-semibold ml-1">
-                            (отмечено: {selectedAssigneeIds.length})
-                          </span>
-                        )}
-                      </span>
-                      <div className="flex items-center gap-3">
-                        {filteredEmployees.length > 0 && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleSelectAllFiltered();
-                            }}
-                            className="text-blue-400 hover:underline cursor-pointer font-medium"
-                          >
-                            Выбрать всех ({filteredEmployees.length})
-                          </button>
-                        )}
-                        {selectedAssigneeIds.length > 0 && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleClearAllSelected();
-                            }}
-                            className="text-rose-400 hover:underline cursor-pointer font-medium"
-                          >
-                            Снять все
-                          </button>
-                        )}
-                      </div>
+                  <div className="flex items-center justify-between text-[11px] text-gray-400 px-1 border-b border-[#2D3139]/60 pb-1.5">
+                    <span className="flex items-center gap-1.5">
+                      <span>Найдено:</span>
+                      <strong className="text-gray-200">{filteredEmployees.length}</strong>
+                      {selectedAssigneeIds.length > 0 && (
+                        <span className="text-blue-400 font-semibold ml-1">
+                          (отмечено: {selectedAssigneeIds.length})
+                        </span>
+                      )}
+                    </span>
+                    <div className="flex items-center gap-3">
+                      {filteredEmployees.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSelectAllFiltered();
+                          }}
+                          className="text-blue-400 hover:underline cursor-pointer font-medium"
+                        >
+                          Выбрать всех ({filteredEmployees.length})
+                        </button>
+                      )}
+                      {selectedAssigneeIds.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleClearAllSelected();
+                          }}
+                          className="text-rose-400 hover:underline cursor-pointer font-medium"
+                        >
+                          Снять все
+                        </button>
+                      )}
                     </div>
-                  )}
+                  </div>
 
                   {/* Список сотрудников с надежными интерактивными чекбоксами */}
                   <div className="max-h-56 overflow-y-auto space-y-1 pr-1">
@@ -637,7 +676,6 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
                       onClick={(e) => {
                         e.stopPropagation();
                         handleClearAllSelected();
-                        if (initialData) setIsAssigneeDropdownOpen(false);
                       }}
                       className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs cursor-pointer select-none transition-colors ${
                         selectedAssigneeIds.length === 0
@@ -737,13 +775,22 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
               )}
 
               {/* Информационный баннер при множественном выборе (создание нескольких задач в БД) */}
-              {!initialData && selectedAssigneeIds.length > 1 && (
+              {selectedAssigneeIds.length > 1 && (
                 <div className="mt-2 p-2.5 bg-blue-950/40 border border-blue-500/30 rounded-xl text-xs text-blue-300 flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <Users className="w-4 h-4 text-blue-400 shrink-0" />
                     <span>
-                      Выбрано исполнителей: <strong>{selectedAssigneeIds.length}</strong>. Будет создано{' '}
-                      <strong>{selectedAssigneeIds.length}</strong> отдельных записей в базе данных (по одной для каждого сотрудника).
+                      {initialData ? (
+                        <>
+                          Выбрано исполнителей: <strong>{selectedAssigneeIds.length}</strong>. Текущая задача будет обновлена для первого сотрудника, и дополнительно создано{' '}
+                          <strong>{selectedAssigneeIds.length - 1}</strong> {selectedAssigneeIds.length - 1 === 1 ? 'копия' : 'копии'} задачи для остальных выбранных исполнителей.
+                        </>
+                      ) : (
+                        <>
+                          Выбрано исполнителей: <strong>{selectedAssigneeIds.length}</strong>. Будет создано{' '}
+                          <strong>{selectedAssigneeIds.length}</strong> отдельных записей в базе данных (по одной для каждого сотрудника).
+                        </>
+                      )}
                     </span>
                   </div>
                   <button
@@ -851,7 +898,9 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
               )}
               <span>
                 {initialData
-                  ? 'Сохранить изменения'
+                  ? selectedAssigneeIds.length > 1
+                    ? `Сохранить и создать копии (${selectedAssigneeIds.length - 1})`
+                    : 'Сохранить изменения'
                   : selectedAssigneeIds.length > 1
                   ? `Создать задачи (${selectedAssigneeIds.length})`
                   : 'Создать задачу'}
