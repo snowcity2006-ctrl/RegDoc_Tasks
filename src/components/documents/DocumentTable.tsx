@@ -549,7 +549,7 @@ export const DocumentTable: React.FC<DocumentTableProps> = ({
               {/* ID */}
               <th
                 style={{ width: `${colWidths.id}px`, minWidth: `${colWidths.id}px`, maxWidth: `${colWidths.id}px` }}
-                className="py-3 px-3 relative group overflow-hidden"
+                className="py-3 px-3 relative group overflow-hidden border-r border-[#2D3139]"
               >
                 <div
                   onClick={() => handleSort('id')}
@@ -568,7 +568,7 @@ export const DocumentTable: React.FC<DocumentTableProps> = ({
               {/* Тип документа */}
               <th
                 style={{ width: `${colWidths.docType}px`, minWidth: `${colWidths.docType}px`, maxWidth: `${colWidths.docType}px` }}
-                className="py-3 px-3 relative group overflow-hidden"
+                className="py-3 px-3 relative group overflow-hidden border-r border-[#2D3139]"
               >
                 <div
                   onClick={() => handleSort('docTypeName')}
@@ -587,7 +587,7 @@ export const DocumentTable: React.FC<DocumentTableProps> = ({
               {/* Направление */}
               <th
                 style={{ width: `${colWidths.direction}px`, minWidth: `${colWidths.direction}px`, maxWidth: `${colWidths.direction}px` }}
-                className="py-3 px-3 relative group overflow-hidden"
+                className="py-3 px-3 relative group overflow-hidden border-r border-[#2D3139]"
               >
                 <div
                   onClick={() => handleSort('directionName')}
@@ -606,7 +606,7 @@ export const DocumentTable: React.FC<DocumentTableProps> = ({
               {/* Исх.№ */}
               <th
                 style={{ width: `${colWidths.outNum}px`, minWidth: `${colWidths.outNum}px`, maxWidth: `${colWidths.outNum}px` }}
-                className="py-3 px-3 relative group overflow-hidden"
+                className="py-3 px-3 relative group overflow-hidden border-r border-[#2D3139]"
               >
                 <div
                   onClick={() => handleSort('outgoingNumber')}
@@ -625,7 +625,7 @@ export const DocumentTable: React.FC<DocumentTableProps> = ({
               {/* Исх.дата */}
               <th
                 style={{ width: `${colWidths.outDate}px`, minWidth: `${colWidths.outDate}px`, maxWidth: `${colWidths.outDate}px` }}
-                className="py-3 px-3 relative group overflow-hidden"
+                className="py-3 px-3 relative group overflow-hidden border-r border-[#2D3139]"
               >
                 <div
                   onClick={() => handleSort('outgoingDate')}
@@ -644,7 +644,7 @@ export const DocumentTable: React.FC<DocumentTableProps> = ({
               {/* Вх.№ */}
               <th
                 style={{ width: `${colWidths.inNum}px`, minWidth: `${colWidths.inNum}px`, maxWidth: `${colWidths.inNum}px` }}
-                className="py-3 px-3 relative group overflow-hidden"
+                className="py-3 px-3 relative group overflow-hidden border-r border-[#2D3139]"
               >
                 <div
                   onClick={() => handleSort('incomingNumber')}
@@ -663,7 +663,7 @@ export const DocumentTable: React.FC<DocumentTableProps> = ({
               {/* Вх.дата */}
               <th
                 style={{ width: `${colWidths.inDate}px`, minWidth: `${colWidths.inDate}px`, maxWidth: `${colWidths.inDate}px` }}
-                className="py-3 px-3 relative group overflow-hidden"
+                className="py-3 px-3 relative group overflow-hidden border-r border-[#2D3139]"
               >
                 <div
                   onClick={() => handleSort('incomingDate')}
@@ -682,7 +682,7 @@ export const DocumentTable: React.FC<DocumentTableProps> = ({
               {/* Тема */}
               <th
                 style={{ width: `${colWidths.subject}px`, minWidth: `${colWidths.subject}px`, maxWidth: `${colWidths.subject}px` }}
-                className="py-3 px-3 relative group overflow-hidden"
+                className="py-3 px-3 relative group overflow-hidden border-r border-[#2D3139]"
               >
                 <div
                   onClick={() => handleSort('subject')}
@@ -701,7 +701,7 @@ export const DocumentTable: React.FC<DocumentTableProps> = ({
               {/* Отправитель */}
               <th
                 style={{ width: `${colWidths.sender}px`, minWidth: `${colWidths.sender}px`, maxWidth: `${colWidths.sender}px` }}
-                className="py-3 px-3 relative group overflow-hidden"
+                className="py-3 px-3 relative group overflow-hidden border-r border-[#2D3139]"
               >
                 <div
                   onClick={() => handleSort('senderName')}
@@ -720,7 +720,7 @@ export const DocumentTable: React.FC<DocumentTableProps> = ({
               {/* Получатель */}
               <th
                 style={{ width: `${colWidths.recipient}px`, minWidth: `${colWidths.recipient}px`, maxWidth: `${colWidths.recipient}px` }}
-                className="py-3 px-3 relative group overflow-hidden"
+                className="py-3 px-3 relative group overflow-hidden border-r border-[#2D3139]"
               >
                 <div
                   onClick={() => handleSort('recipientName')}
@@ -739,7 +739,7 @@ export const DocumentTable: React.FC<DocumentTableProps> = ({
               {/* Путь к документу */}
               <th
                 style={{ width: `${colWidths.filePath}px`, minWidth: `${colWidths.filePath}px`, maxWidth: `${colWidths.filePath}px` }}
-                className="py-3 px-3 relative group overflow-hidden"
+                className="py-3 px-3 relative group overflow-hidden border-r border-[#2D3139]"
               >
                 <div className="flex items-center justify-between min-w-0 pr-1.5">
                   <span className="truncate block">Файл / Папка</span>
@@ -754,7 +754,7 @@ export const DocumentTable: React.FC<DocumentTableProps> = ({
               {/* Путь к документу в СЭД */}
               <th
                 style={{ width: `${colWidths.sedUrl}px`, minWidth: `${colWidths.sedUrl}px`, maxWidth: `${colWidths.sedUrl}px` }}
-                className="py-3 px-3 relative group overflow-hidden text-center"
+                className="py-3 px-3 relative group overflow-hidden text-center border-r border-[#2D3139]"
               >
                 <div className="flex items-center justify-center min-w-0 pr-1.5">
                   <span className="truncate block" title="СЭД">СЭД</span>
@@ -769,7 +769,7 @@ export const DocumentTable: React.FC<DocumentTableProps> = ({
               {/* Действия / Связанные документы */}
               <th
                 style={{ width: `${colWidths.actions}px`, minWidth: `${colWidths.actions}px`, maxWidth: `${colWidths.actions}px` }}
-                className={`py-3 px-2 ${isRelatedSelectionMode ? 'text-center' : 'text-right'} bg-[#1F222B] border-l border-[#2D3139] relative group select-none`}
+                className={`py-3 px-2 ${isRelatedSelectionMode ? 'text-center' : 'text-right'} bg-[#1F222B] relative group select-none`}
               >
                 {/* Разделитель и интерактивная зона изменения ширины колонки с левой стороны */}
                 <div
@@ -831,7 +831,7 @@ export const DocumentTable: React.FC<DocumentTableProps> = ({
                 {/* ID */}
                 <td
                   style={{ width: `${colWidths.id}px`, minWidth: `${colWidths.id}px`, maxWidth: `${colWidths.id}px` }}
-                  className="py-2.5 px-3 font-mono font-semibold text-slate-700 dark:text-gray-500 overflow-hidden"
+                  className="py-2.5 px-3 font-mono font-semibold text-slate-700 dark:text-gray-500 overflow-hidden border-r border-[#2D3139]"
                   title={String(doc.id)}
                 >
                   <span className="truncate block">{doc.id}</span>
@@ -840,7 +840,7 @@ export const DocumentTable: React.FC<DocumentTableProps> = ({
                 {/* Тип документа */}
                 <td
                   style={{ width: `${colWidths.docType}px`, minWidth: `${colWidths.docType}px`, maxWidth: `${colWidths.docType}px` }}
-                  className="py-2.5 px-3 overflow-hidden"
+                  className="py-2.5 px-3 overflow-hidden border-r border-[#2D3139]"
                   title={doc.docTypeName || '—'}
                 >
                   <span className="truncate block leading-tight text-slate-800 dark:text-gray-300 font-medium">
@@ -851,7 +851,7 @@ export const DocumentTable: React.FC<DocumentTableProps> = ({
                 {/* Направление */}
                 <td
                   style={{ width: `${colWidths.direction}px`, minWidth: `${colWidths.direction}px`, maxWidth: `${colWidths.direction}px` }}
-                  className="py-2.5 px-3 overflow-hidden"
+                  className="py-2.5 px-3 overflow-hidden border-r border-[#2D3139]"
                   title={doc.directionName || '—'}
                 >
                   <span
@@ -864,7 +864,7 @@ export const DocumentTable: React.FC<DocumentTableProps> = ({
                 {/* Исх.№ */}
                 <td
                   style={{ width: `${colWidths.outNum}px`, minWidth: `${colWidths.outNum}px`, maxWidth: `${colWidths.outNum}px` }}
-                  className="py-2.5 px-3 font-mono font-semibold text-slate-900 dark:text-gray-300 overflow-hidden"
+                  className="py-2.5 px-3 font-mono font-semibold text-slate-900 dark:text-gray-300 overflow-hidden border-r border-[#2D3139]"
                   title={doc.outgoingNumber || '—'}
                 >
                   <span className="truncate block">
@@ -875,7 +875,7 @@ export const DocumentTable: React.FC<DocumentTableProps> = ({
                 {/* Исх.дата */}
                 <td
                   style={{ width: `${colWidths.outDate}px`, minWidth: `${colWidths.outDate}px`, maxWidth: `${colWidths.outDate}px` }}
-                  className="py-2.5 px-3 font-mono text-slate-800 dark:text-gray-300 overflow-hidden"
+                  className="py-2.5 px-3 font-mono text-slate-800 dark:text-gray-300 overflow-hidden border-r border-[#2D3139]"
                   title={formatDateRussian(doc.outgoingDate)}
                 >
                   <span className="truncate block">
@@ -886,7 +886,7 @@ export const DocumentTable: React.FC<DocumentTableProps> = ({
                 {/* Вх.№ */}
                 <td
                   style={{ width: `${colWidths.inNum}px`, minWidth: `${colWidths.inNum}px`, maxWidth: `${colWidths.inNum}px` }}
-                  className="py-2.5 px-3 font-mono font-semibold text-slate-900 dark:text-gray-300 overflow-hidden"
+                  className="py-2.5 px-3 font-mono font-semibold text-slate-900 dark:text-gray-300 overflow-hidden border-r border-[#2D3139]"
                   title={doc.incomingNumber || '—'}
                 >
                   <span className="truncate block">
@@ -897,7 +897,7 @@ export const DocumentTable: React.FC<DocumentTableProps> = ({
                 {/* Вх.дата */}
                 <td
                   style={{ width: `${colWidths.inDate}px`, minWidth: `${colWidths.inDate}px`, maxWidth: `${colWidths.inDate}px` }}
-                  className="py-2.5 px-3 font-mono text-slate-800 dark:text-gray-300 overflow-hidden"
+                  className="py-2.5 px-3 font-mono text-slate-800 dark:text-gray-300 overflow-hidden border-r border-[#2D3139]"
                   title={formatDateRussian(doc.incomingDate)}
                 >
                   <span className="truncate block">
@@ -908,7 +908,7 @@ export const DocumentTable: React.FC<DocumentTableProps> = ({
                 {/* Тема (с переносом по словам по ТЗ) */}
                 <td
                   style={{ width: `${colWidths.subject}px`, minWidth: `${colWidths.subject}px`, maxWidth: `${colWidths.subject}px` }}
-                  className="py-2.5 px-3 overflow-hidden"
+                  className="py-2.5 px-3 overflow-hidden border-r border-[#2D3139]"
                 >
                   <span
                     onClick={() => onView(doc)}
@@ -922,7 +922,7 @@ export const DocumentTable: React.FC<DocumentTableProps> = ({
                 {/* Отправитель */}
                 <td
                   style={{ width: `${colWidths.sender}px`, minWidth: `${colWidths.sender}px`, maxWidth: `${colWidths.sender}px` }}
-                  className="py-2.5 px-3 overflow-hidden break-words whitespace-normal text-slate-800 dark:text-gray-300 font-medium"
+                  className="py-2.5 px-3 overflow-hidden break-words whitespace-normal text-slate-800 dark:text-gray-300 font-medium border-r border-[#2D3139]"
                 >
                   <div>
                     <span className="break-words">{doc.senderName || '—'}</span>
@@ -951,7 +951,7 @@ export const DocumentTable: React.FC<DocumentTableProps> = ({
                 {/* Получатель */}
                 <td
                   style={{ width: `${colWidths.recipient}px`, minWidth: `${colWidths.recipient}px`, maxWidth: `${colWidths.recipient}px` }}
-                  className="py-2.5 px-3 overflow-hidden break-words whitespace-normal text-slate-800 dark:text-gray-300 font-medium"
+                  className="py-2.5 px-3 overflow-hidden break-words whitespace-normal text-slate-800 dark:text-gray-300 font-medium border-r border-[#2D3139]"
                 >
                   <div>
                     <span className="break-words">{doc.recipientName || '—'}</span>
@@ -968,7 +968,7 @@ export const DocumentTable: React.FC<DocumentTableProps> = ({
                 {/* Путь к документу (гиперссылка) */}
                 <td
                   style={{ width: `${colWidths.filePath}px`, minWidth: `${colWidths.filePath}px`, maxWidth: `${colWidths.filePath}px` }}
-                  className="py-2.5 px-3 overflow-hidden"
+                  className="py-2.5 px-3 overflow-hidden border-r border-[#2D3139]"
                 >
                   {doc.filePath ? (
                     (() => {
@@ -999,7 +999,7 @@ export const DocumentTable: React.FC<DocumentTableProps> = ({
                 {/* Путь к документу в СЭД (гиперссылка) */}
                 <td
                   style={{ width: `${colWidths.sedUrl}px`, minWidth: `${colWidths.sedUrl}px`, maxWidth: `${colWidths.sedUrl}px` }}
-                  className="py-2.5 px-3 text-center overflow-hidden"
+                  className="py-2.5 px-3 text-center overflow-hidden border-r border-[#2D3139]"
                 >
                   {doc.sedUrl ? (
                     <button
@@ -1018,7 +1018,7 @@ export const DocumentTable: React.FC<DocumentTableProps> = ({
                 {/* Действия / Связанные документы */}
                 <td
                   style={{ width: `${colWidths.actions}px`, minWidth: `${colWidths.actions}px`, maxWidth: `${colWidths.actions}px` }}
-                  className={`py-2 px-1.5 ${isRelatedSelectionMode ? 'text-center' : 'text-right'} bg-white dark:bg-[#171A21] group-hover:bg-slate-100 dark:group-hover:bg-[#1F222B] transition-colors border-l border-slate-200 dark:border-[#2D3139]`}
+                  className={`py-2 px-1.5 ${isRelatedSelectionMode ? 'text-center' : 'text-right'} bg-white dark:bg-[#171A21] group-hover:bg-slate-100 dark:group-hover:bg-[#1F222B] transition-colors overflow-hidden`}
                 >
                   {isRelatedSelectionMode ? (
                     <div className="flex items-center justify-center">

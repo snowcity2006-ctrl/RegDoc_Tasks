@@ -462,7 +462,7 @@ export const TaskTable: React.FC<TaskTableProps> = ({
               {/* 2. Колонка #: сортировка по возрастанию/убыванию */}
               <th
                 onClick={() => handleSort('id')}
-                className="py-3 px-2 text-center cursor-pointer hover:text-white transition-colors group relative select-none"
+                className="py-3 px-2 text-center cursor-pointer hover:text-white transition-colors group relative select-none overflow-hidden border-r border-[#2D3139]"
                 title="Сортировка по номеру (#)"
               >
                 <div className="flex items-center justify-center gap-1">
@@ -479,7 +479,7 @@ export const TaskTable: React.FC<TaskTableProps> = ({
               </th>
 
               {/* Задача (без сортировки) */}
-              <th className="py-3 px-3 relative select-none text-gray-400 font-semibold">
+              <th className="py-3 px-3 relative select-none text-gray-400 font-semibold overflow-hidden border-r border-[#2D3139]">
                 <div className="flex items-center gap-1.5 overflow-hidden">
                   <FileText className="w-3.5 h-3.5 text-blue-400 shrink-0" />
                   <span className="truncate">Задача</span>
@@ -495,7 +495,7 @@ export const TaskTable: React.FC<TaskTableProps> = ({
               {/* Дата окончания по плану */}
               <th
                 onClick={() => handleSort('plannedEndDate')}
-                className="py-3 px-2.5 cursor-pointer hover:text-white transition-colors group relative select-none"
+                className="py-3 px-2.5 cursor-pointer hover:text-white transition-colors group relative select-none overflow-hidden border-r border-[#2D3139]"
                 title="Сортировка по плановой дате"
               >
                 <div className="flex items-center gap-1.5 overflow-hidden">
@@ -514,7 +514,7 @@ export const TaskTable: React.FC<TaskTableProps> = ({
               {/* Дата окончания по факту */}
               <th
                 onClick={() => handleSort('actualEndDate')}
-                className="py-3 px-2.5 cursor-pointer hover:text-white transition-colors group relative select-none"
+                className="py-3 px-2.5 cursor-pointer hover:text-white transition-colors group relative select-none overflow-hidden border-r border-[#2D3139]"
                 title="Сортировка по фактической дате"
               >
                 <div className="flex items-center gap-1.5 overflow-hidden">
@@ -531,7 +531,7 @@ export const TaskTable: React.FC<TaskTableProps> = ({
               </th>
 
               {/* Выполнено (без сортировки) */}
-              <th className="py-3 px-2 text-center relative select-none text-gray-400 font-semibold">
+              <th className="py-3 px-2 text-center relative select-none text-gray-400 font-semibold overflow-hidden border-r border-[#2D3139]">
                 <div className="flex items-center justify-center gap-1">
                   <span className="truncate">Выполнено</span>
                 </div>
@@ -544,7 +544,7 @@ export const TaskTable: React.FC<TaskTableProps> = ({
               </th>
 
               {/* Принято (без сортировки) */}
-              <th className="py-3 px-2 text-center relative select-none text-gray-400 font-semibold">
+              <th className="py-3 px-2 text-center relative select-none text-gray-400 font-semibold overflow-hidden border-r border-[#2D3139]">
                 <div className="flex items-center justify-center gap-1">
                   <span className="truncate">Принято</span>
                 </div>
@@ -559,7 +559,7 @@ export const TaskTable: React.FC<TaskTableProps> = ({
               {/* Осталось (План - Факт при принятии) */}
               <th
                 onClick={() => handleSort('daysRemaining')}
-                className="py-3 px-2.5 cursor-pointer hover:text-white transition-colors group relative select-none"
+                className="py-3 px-2.5 cursor-pointer hover:text-white transition-colors group relative select-none overflow-hidden border-r border-[#2D3139]"
                 title="Сортировка по колонке 'Осталось' (при принятии: План - Факт)"
               >
                 <div className="flex items-center gap-1.5 overflow-hidden">
@@ -578,7 +578,7 @@ export const TaskTable: React.FC<TaskTableProps> = ({
               {/* Ответственный */}
               <th
                 onClick={() => handleSort('assigneeName')}
-                className="py-3 px-3 cursor-pointer hover:text-white transition-colors group relative select-none"
+                className="py-3 px-3 cursor-pointer hover:text-white transition-colors group relative select-none overflow-hidden border-r border-[#2D3139]"
                 title="Сортировка по ответственному"
               >
                 <div className="flex items-center gap-1.5 overflow-hidden">
@@ -595,7 +595,7 @@ export const TaskTable: React.FC<TaskTableProps> = ({
               </th>
 
               {/* Результат */}
-              <th className="py-3 px-3 relative select-none">
+              <th className="py-3 px-3 relative select-none overflow-hidden border-r border-[#2D3139]">
                 <span className="truncate">Результат</span>
                 <div
                   onMouseDown={(e) => startResizingCol('result', e)}
@@ -606,7 +606,7 @@ export const TaskTable: React.FC<TaskTableProps> = ({
               </th>
 
               {/* Действия */}
-              <th className="py-3 px-2 text-right relative select-none">
+              <th className="py-3 px-2 text-right relative select-none overflow-hidden">
                 <span>Действия</span>
                 <div
                   onMouseDown={(e) => startResizingCol('actions', e)}
@@ -642,24 +642,24 @@ export const TaskTable: React.FC<TaskTableProps> = ({
                   }`}
                 >
                   {/* Номер ID с поддержкой переноса */}
-                  <td className="py-3 px-2 text-center text-gray-500 font-mono text-[11px] break-words">
+                  <td className="py-3 px-2 text-center text-gray-500 font-mono text-[11px] break-words overflow-hidden border-r border-[#2D3139]">
                     {t.id}
                   </td>
 
                   {/* Текст задачи: перенос по строкам при любой ширине */}
-                  <td className="py-3 px-3">
+                  <td className="py-3 px-3 overflow-hidden border-r border-[#2D3139]">
                     <div className="font-medium text-[#E0E0E0] break-words whitespace-normal text-wrap leading-relaxed">
                       {t.task}
                     </div>
                   </td>
 
                   {/* Плановая дата */}
-                  <td className="py-3 px-2.5 font-mono text-[11px] text-gray-300 break-words whitespace-normal text-wrap">
+                  <td className="py-3 px-2.5 font-mono text-[11px] text-gray-300 break-words whitespace-normal text-wrap overflow-hidden border-r border-[#2D3139]">
                     {formatDateRussian(t.plannedEndDate)}
                   </td>
 
                   {/* Фактическая дата - ручной выбор */}
-                  <td className="py-2 px-1.5">
+                  <td className="py-2 px-1.5 overflow-hidden border-r border-[#2D3139]">
                     <div className="flex items-center gap-1 group/date relative">
                       <input
                         type="date"
@@ -691,7 +691,7 @@ export const TaskTable: React.FC<TaskTableProps> = ({
                   </td>
 
                   {/* Чекбокс: Выполнено */}
-                  <td className="py-3 px-2 text-center">
+                  <td className="py-3 px-2 text-center overflow-hidden border-r border-[#2D3139]">
                     <button
                       type="button"
                       disabled={isChecking}
@@ -713,7 +713,7 @@ export const TaskTable: React.FC<TaskTableProps> = ({
                   </td>
 
                   {/* Чекбокс: Принято */}
-                  <td className="py-3 px-2 text-center">
+                  <td className="py-3 px-2 text-center overflow-hidden border-r border-[#2D3139]">
                     <button
                       type="button"
                       disabled={isChecking || !t.isCompleted}
@@ -747,7 +747,7 @@ export const TaskTable: React.FC<TaskTableProps> = ({
                   </td>
 
                   {/* Осталось с цветовой индикацией */}
-                  <td className="py-3 px-2.5">
+                  <td className="py-3 px-2.5 overflow-hidden border-r border-[#2D3139]">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span
                         className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-semibold border break-words whitespace-normal ${status.badgeClass}`}
@@ -767,7 +767,7 @@ export const TaskTable: React.FC<TaskTableProps> = ({
                   </td>
 
                   {/* Ответственный: перенос по строкам */}
-                  <td className="py-3 px-3 text-gray-300">
+                  <td className="py-3 px-3 text-gray-300 overflow-hidden border-r border-[#2D3139]">
                     {t.assigneeName ? (
                       <div className="flex items-start gap-1.5 break-words whitespace-normal text-wrap">
                         <User className="w-3 h-3 text-gray-400 shrink-0 mt-0.5" />
@@ -781,7 +781,7 @@ export const TaskTable: React.FC<TaskTableProps> = ({
                   </td>
 
                   {/* Результат: перенос по строкам */}
-                  <td className="py-3 px-3">
+                  <td className="py-3 px-3 overflow-hidden border-r border-[#2D3139]">
                     {t.result ? (
                       <div className="text-gray-300 text-[11px] leading-relaxed break-words whitespace-normal text-wrap">
                         {t.result}
@@ -792,7 +792,7 @@ export const TaskTable: React.FC<TaskTableProps> = ({
                   </td>
 
                   {/* Действия */}
-                  <td className="py-3 px-2 text-right">
+                  <td className="py-3 px-2 text-right overflow-hidden">
                     <div className="flex items-center justify-end gap-1 flex-wrap">
                       <button
                         type="button"

@@ -510,12 +510,19 @@ export const DirectoriesView: React.FC<DirectoriesViewProps> = ({
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs select-none" style={{ tableLayout: 'fixed' }}>
+            <table className="w-full text-left border-collapse text-xs select-none table-fixed">
+              <colgroup>
+                <col style={{ width: `${orgWidths.id}px` }} />
+                <col style={{ width: `${orgWidths.name}px` }} />
+                <col style={{ width: `${orgWidths.director}px` }} />
+                <col style={{ width: `${orgWidths.email}px` }} />
+                <col style={{ width: `${orgWidths.actions}px` }} />
+              </colgroup>
               <thead>
                 <tr className="border-b border-[#2D3139] bg-[#0F1115]/60 text-gray-400 font-semibold uppercase tracking-wider">
                   <th
-                    style={{ width: orgWidths.id, minWidth: 50 }}
-                    className="py-3 px-4 relative group overflow-hidden"
+                    style={{ width: `${orgWidths.id}px`, minWidth: 50 }}
+                    className="py-3 px-4 relative group overflow-hidden border-r border-[#2D3139]"
                   >
                     <div
                       onClick={() => handleSortToggle(orgSort, setOrgSort, 'id')}
@@ -526,13 +533,13 @@ export const DirectoriesView: React.FC<DirectoriesViewProps> = ({
                     </div>
                     <div
                       onMouseDown={(e) => startResizing('orgs', 'id', orgWidths.id, e)}
-                      className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-blue-500"
+                      className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-blue-500 z-10"
                     />
                   </th>
 
                   <th
-                    style={{ width: orgWidths.name, minWidth: 100 }}
-                    className="py-3 px-4 relative group overflow-hidden"
+                    style={{ width: `${orgWidths.name}px`, minWidth: 100 }}
+                    className="py-3 px-4 relative group overflow-hidden border-r border-[#2D3139]"
                   >
                     <div
                       onClick={() => handleSortToggle(orgSort, setOrgSort, 'name')}
@@ -543,13 +550,13 @@ export const DirectoriesView: React.FC<DirectoriesViewProps> = ({
                     </div>
                     <div
                       onMouseDown={(e) => startResizing('orgs', 'name', orgWidths.name, e)}
-                      className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-blue-500"
+                      className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-blue-500 z-10"
                     />
                   </th>
 
                   <th
-                    style={{ width: orgWidths.director, minWidth: 100 }}
-                    className="py-3 px-4 relative group overflow-hidden"
+                    style={{ width: `${orgWidths.director}px`, minWidth: 100 }}
+                    className="py-3 px-4 relative group overflow-hidden border-r border-[#2D3139]"
                   >
                     <div
                       onClick={() => handleSortToggle(orgSort, setOrgSort, 'director')}
@@ -560,13 +567,13 @@ export const DirectoriesView: React.FC<DirectoriesViewProps> = ({
                     </div>
                     <div
                       onMouseDown={(e) => startResizing('orgs', 'director', orgWidths.director, e)}
-                      className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-blue-500"
+                      className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-blue-500 z-10"
                     />
                   </th>
 
                   <th
-                    style={{ width: orgWidths.email, minWidth: 100 }}
-                    className="py-3 px-4 relative group overflow-hidden"
+                    style={{ width: `${orgWidths.email}px`, minWidth: 100 }}
+                    className="py-3 px-4 relative group overflow-hidden border-r border-[#2D3139]"
                   >
                     <div
                       onClick={() => handleSortToggle(orgSort, setOrgSort, 'email')}
@@ -577,12 +584,12 @@ export const DirectoriesView: React.FC<DirectoriesViewProps> = ({
                     </div>
                     <div
                       onMouseDown={(e) => startResizing('orgs', 'email', orgWidths.email, e)}
-                      className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-blue-500"
+                      className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-blue-500 z-10"
                     />
                   </th>
 
                   <th
-                    style={{ width: orgWidths.actions, minWidth: 70 }}
+                    style={{ width: `${orgWidths.actions}px`, minWidth: 70 }}
                     className="py-3 px-4 text-right overflow-hidden"
                   >
                     <span className="truncate block" title="Действия">Действия</span>
@@ -592,9 +599,9 @@ export const DirectoriesView: React.FC<DirectoriesViewProps> = ({
               <tbody className="divide-y divide-[#2D3139] text-[#E0E0E0] font-medium">
                 {sortedOrgs.map((org) => (
                   <tr key={org.id} className="hover:bg-[#1F222B]/60 transition-colors">
-                    <td className="py-3 px-4 font-mono text-gray-500 break-words">{org.id}</td>
-                    <td className="py-3 px-4 font-semibold text-[#E0E0E0] break-words whitespace-normal leading-relaxed">{org.name}</td>
-                    <td className="py-3 px-4 text-gray-300 break-words whitespace-normal leading-relaxed">
+                    <td className="py-3 px-4 font-mono text-gray-500 break-words overflow-hidden border-r border-[#2D3139]">{org.id}</td>
+                    <td className="py-3 px-4 font-semibold text-[#E0E0E0] break-words whitespace-normal leading-relaxed overflow-hidden border-r border-[#2D3139]">{org.name}</td>
+                    <td className="py-3 px-4 text-gray-300 break-words whitespace-normal leading-relaxed overflow-hidden border-r border-[#2D3139]">
                       {org.director ? (
                         <span className="flex items-center gap-1.5 break-words">
                           <User className="w-3.5 h-3.5 text-gray-400 shrink-0" />
@@ -602,7 +609,7 @@ export const DirectoriesView: React.FC<DirectoriesViewProps> = ({
                         </span>
                       ) : '—'}
                     </td>
-                    <td className="py-3 px-4 text-gray-300 font-mono break-all whitespace-normal">
+                    <td className="py-3 px-4 text-gray-300 font-mono break-all whitespace-normal overflow-hidden border-r border-[#2D3139]">
                       {org.email ? (
                         <span className="flex items-center gap-1.5 break-all">
                           <Mail className="w-3.5 h-3.5 text-blue-400 shrink-0" />
@@ -612,7 +619,7 @@ export const DirectoriesView: React.FC<DirectoriesViewProps> = ({
                         </span>
                       ) : '—'}
                     </td>
-                    <td className="py-3 px-4 text-right">
+                    <td className="py-3 px-4 text-right overflow-hidden">
                       <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={() => {
@@ -678,12 +685,19 @@ export const DirectoriesView: React.FC<DirectoriesViewProps> = ({
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs select-none" style={{ tableLayout: 'fixed' }}>
+            <table className="w-full text-left border-collapse text-xs select-none table-fixed">
+              <colgroup>
+                <col style={{ width: `${deptWidths.id}px` }} />
+                <col style={{ width: `${deptWidths.name}px` }} />
+                <col style={{ width: `${deptWidths.shortName}px` }} />
+                <col style={{ width: `${deptWidths.org}px` }} />
+                <col style={{ width: `${deptWidths.actions}px` }} />
+              </colgroup>
               <thead>
                 <tr className="border-b border-[#2D3139] bg-[#0F1115]/60 text-gray-400 font-semibold uppercase tracking-wider">
                   <th
-                    style={{ width: deptWidths.id, minWidth: 50 }}
-                    className="py-3 px-4 relative group overflow-hidden"
+                    style={{ width: `${deptWidths.id}px`, minWidth: 50 }}
+                    className="py-3 px-4 relative group overflow-hidden border-r border-[#2D3139]"
                   >
                     <div
                       onClick={() => handleSortToggle(deptSort, setDeptSort, 'id')}
@@ -694,13 +708,13 @@ export const DirectoriesView: React.FC<DirectoriesViewProps> = ({
                     </div>
                     <div
                       onMouseDown={(e) => startResizing('depts', 'id', deptWidths.id, e)}
-                      className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-blue-500"
+                      className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-blue-500 z-10"
                     />
                   </th>
 
                   <th
-                    style={{ width: deptWidths.name, minWidth: 120 }}
-                    className="py-3 px-4 relative group overflow-hidden"
+                    style={{ width: `${deptWidths.name}px`, minWidth: 120 }}
+                    className="py-3 px-4 relative group overflow-hidden border-r border-[#2D3139]"
                   >
                     <div
                       onClick={() => handleSortToggle(deptSort, setDeptSort, 'name')}
@@ -711,13 +725,13 @@ export const DirectoriesView: React.FC<DirectoriesViewProps> = ({
                     </div>
                     <div
                       onMouseDown={(e) => startResizing('depts', 'name', deptWidths.name, e)}
-                      className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-blue-500"
+                      className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-blue-500 z-10"
                     />
                   </th>
 
                   <th
-                    style={{ width: deptWidths.shortName, minWidth: 100 }}
-                    className="py-3 px-4 relative group overflow-hidden"
+                    style={{ width: `${deptWidths.shortName}px`, minWidth: 100 }}
+                    className="py-3 px-4 relative group overflow-hidden border-r border-[#2D3139]"
                   >
                     <div
                       onClick={() => handleSortToggle(deptSort, setDeptSort, 'shortName')}
@@ -728,13 +742,13 @@ export const DirectoriesView: React.FC<DirectoriesViewProps> = ({
                     </div>
                     <div
                       onMouseDown={(e) => startResizing('depts', 'shortName', deptWidths.shortName, e)}
-                      className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-blue-500"
+                      className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-blue-500 z-10"
                     />
                   </th>
 
                   <th
-                    style={{ width: deptWidths.org, minWidth: 100 }}
-                    className="py-3 px-4 relative group overflow-hidden"
+                    style={{ width: `${deptWidths.org}px`, minWidth: 100 }}
+                    className="py-3 px-4 relative group overflow-hidden border-r border-[#2D3139]"
                   >
                     <div
                       onClick={() => handleSortToggle(deptSort, setDeptSort, 'organizationName')}
@@ -745,12 +759,12 @@ export const DirectoriesView: React.FC<DirectoriesViewProps> = ({
                     </div>
                     <div
                       onMouseDown={(e) => startResizing('depts', 'org', deptWidths.org, e)}
-                      className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-blue-500"
+                      className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-blue-500 z-10"
                     />
                   </th>
 
                   <th
-                    style={{ width: deptWidths.actions, minWidth: 70 }}
+                    style={{ width: `${deptWidths.actions}px`, minWidth: 70 }}
                     className="py-3 px-4 text-right overflow-hidden"
                   >
                     <span className="truncate block" title="Действия">Действия</span>
@@ -760,17 +774,17 @@ export const DirectoriesView: React.FC<DirectoriesViewProps> = ({
               <tbody className="divide-y divide-[#2D3139] text-[#E0E0E0] font-medium">
                 {sortedDepts.map((dept) => (
                   <tr key={dept.id} className="hover:bg-[#1F222B]/60 transition-colors">
-                    <td className="py-3 px-4 font-mono text-gray-500 break-words">{dept.id}</td>
-                    <td className="py-3 px-4 font-semibold text-[#E0E0E0] break-words whitespace-normal leading-relaxed">{dept.name}</td>
-                    <td className="py-3 px-4 break-words whitespace-normal">
+                    <td className="py-3 px-4 font-mono text-gray-500 break-words overflow-hidden border-r border-[#2D3139]">{dept.id}</td>
+                    <td className="py-3 px-4 font-semibold text-[#E0E0E0] break-words whitespace-normal leading-relaxed overflow-hidden border-r border-[#2D3139]">{dept.name}</td>
+                    <td className="py-3 px-4 break-words whitespace-normal overflow-hidden border-r border-[#2D3139]">
                       <span className="px-2 py-0.5 rounded bg-blue-600/10 text-blue-400 font-mono font-bold border border-blue-500/20 inline-block break-words">
                         {dept.shortName}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-gray-300 break-words whitespace-normal leading-relaxed">
+                    <td className="py-3 px-4 text-gray-300 break-words whitespace-normal leading-relaxed overflow-hidden border-r border-[#2D3139]">
                       {dept.organizationName || '—'}
                     </td>
-                    <td className="py-3 px-4 text-right">
+                    <td className="py-3 px-4 text-right overflow-hidden">
                       <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={() => {
@@ -836,12 +850,20 @@ export const DirectoriesView: React.FC<DirectoriesViewProps> = ({
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs select-none" style={{ tableLayout: 'fixed' }}>
+            <table className="w-full text-left border-collapse text-xs select-none table-fixed">
+              <colgroup>
+                <col style={{ width: `${empWidths.id}px` }} />
+                <col style={{ width: `${empWidths.fullName}px` }} />
+                <col style={{ width: `${empWidths.position}px` }} />
+                <col style={{ width: `${empWidths.dept}px` }} />
+                <col style={{ width: `${empWidths.org}px` }} />
+                <col style={{ width: `${empWidths.actions}px` }} />
+              </colgroup>
               <thead>
                 <tr className="border-b border-[#2D3139] bg-[#0F1115]/60 text-gray-400 font-semibold uppercase tracking-wider">
                   <th
-                    style={{ width: empWidths.id, minWidth: 50 }}
-                    className="py-3 px-4 relative group overflow-hidden"
+                    style={{ width: `${empWidths.id}px`, minWidth: 50 }}
+                    className="py-3 px-4 relative group overflow-hidden border-r border-[#2D3139]"
                   >
                     <div
                       onClick={() => handleSortToggle(empSort, setEmpSort, 'id')}
@@ -852,13 +874,13 @@ export const DirectoriesView: React.FC<DirectoriesViewProps> = ({
                     </div>
                     <div
                       onMouseDown={(e) => startResizing('emps', 'id', empWidths.id, e)}
-                      className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-blue-500"
+                      className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-blue-500 z-10"
                     />
                   </th>
 
                   <th
-                    style={{ width: empWidths.fullName, minWidth: 120 }}
-                    className="py-3 px-4 relative group overflow-hidden"
+                    style={{ width: `${empWidths.fullName}px`, minWidth: 120 }}
+                    className="py-3 px-4 relative group overflow-hidden border-r border-[#2D3139]"
                   >
                     <div
                       onClick={() => handleSortToggle(empSort, setEmpSort, 'fullName')}
@@ -869,13 +891,13 @@ export const DirectoriesView: React.FC<DirectoriesViewProps> = ({
                     </div>
                     <div
                       onMouseDown={(e) => startResizing('emps', 'fullName', empWidths.fullName, e)}
-                      className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-blue-500"
+                      className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-blue-500 z-10"
                     />
                   </th>
 
                   <th
-                    style={{ width: empWidths.position, minWidth: 100 }}
-                    className="py-3 px-4 relative group overflow-hidden"
+                    style={{ width: `${empWidths.position}px`, minWidth: 100 }}
+                    className="py-3 px-4 relative group overflow-hidden border-r border-[#2D3139]"
                   >
                     <div
                       onClick={() => handleSortToggle(empSort, setEmpSort, 'position')}
@@ -886,13 +908,13 @@ export const DirectoriesView: React.FC<DirectoriesViewProps> = ({
                     </div>
                     <div
                       onMouseDown={(e) => startResizing('emps', 'position', empWidths.position, e)}
-                      className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-blue-500"
+                      className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-blue-500 z-10"
                     />
                   </th>
 
                   <th
-                    style={{ width: empWidths.dept, minWidth: 100 }}
-                    className="py-3 px-4 relative group overflow-hidden"
+                    style={{ width: `${empWidths.dept}px`, minWidth: 100 }}
+                    className="py-3 px-4 relative group overflow-hidden border-r border-[#2D3139]"
                   >
                     <div
                       onClick={() => handleSortToggle(empSort, setEmpSort, 'departmentShortName')}
@@ -903,13 +925,13 @@ export const DirectoriesView: React.FC<DirectoriesViewProps> = ({
                     </div>
                     <div
                       onMouseDown={(e) => startResizing('emps', 'dept', empWidths.dept, e)}
-                      className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-blue-500"
+                      className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-blue-500 z-10"
                     />
                   </th>
 
                   <th
-                    style={{ width: empWidths.org, minWidth: 100 }}
-                    className="py-3 px-4 relative group overflow-hidden"
+                    style={{ width: `${empWidths.org}px`, minWidth: 100 }}
+                    className="py-3 px-4 relative group overflow-hidden border-r border-[#2D3139]"
                   >
                     <div
                       onClick={() => handleSortToggle(empSort, setEmpSort, 'organizationName')}
@@ -920,12 +942,12 @@ export const DirectoriesView: React.FC<DirectoriesViewProps> = ({
                     </div>
                     <div
                       onMouseDown={(e) => startResizing('emps', 'org', empWidths.org, e)}
-                      className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-blue-500"
+                      className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-blue-500 z-10"
                     />
                   </th>
 
                   <th
-                    style={{ width: empWidths.actions, minWidth: 70 }}
+                    style={{ width: `${empWidths.actions}px`, minWidth: 70 }}
                     className="py-3 px-4 text-right overflow-hidden"
                   >
                     <span className="truncate block" title="Действия">Действия</span>
@@ -935,9 +957,9 @@ export const DirectoriesView: React.FC<DirectoriesViewProps> = ({
               <tbody className="divide-y divide-[#2D3139] text-[#E0E0E0] font-medium">
                 {sortedEmps.map((emp) => (
                   <tr key={emp.id} className="hover:bg-[#1F222B]/60 transition-colors">
-                    <td className="py-3 px-4 font-mono text-gray-500 break-words">{emp.id}</td>
-                    <td className="py-3 px-4 font-semibold text-[#E0E0E0] break-words whitespace-normal leading-relaxed">{emp.fullName}</td>
-                    <td className="py-3 px-4 text-gray-300 break-words whitespace-normal leading-relaxed">
+                    <td className="py-3 px-4 font-mono text-gray-500 break-words overflow-hidden border-r border-[#2D3139]">{emp.id}</td>
+                    <td className="py-3 px-4 font-semibold text-[#E0E0E0] break-words whitespace-normal leading-relaxed overflow-hidden border-r border-[#2D3139]">{emp.fullName}</td>
+                    <td className="py-3 px-4 text-gray-300 break-words whitespace-normal leading-relaxed overflow-hidden border-r border-[#2D3139]">
                       {emp.position ? (
                         <span className="inline-flex items-center gap-1.5 break-words">
                           <Briefcase className="w-3.5 h-3.5 text-blue-400 shrink-0" />
@@ -947,15 +969,15 @@ export const DirectoriesView: React.FC<DirectoriesViewProps> = ({
                         <span className="text-gray-500">—</span>
                       )}
                     </td>
-                    <td className="py-3 px-4 break-words whitespace-normal">
+                    <td className="py-3 px-4 break-words whitespace-normal overflow-hidden border-r border-[#2D3139]">
                       <span className="px-2 py-0.5 rounded bg-[#0F1115] text-[#E0E0E0] font-mono font-medium border border-[#2D3139] inline-block break-words">
                         {emp.departmentShortName}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-gray-300 break-words whitespace-normal leading-relaxed">
+                    <td className="py-3 px-4 text-gray-300 break-words whitespace-normal leading-relaxed overflow-hidden border-r border-[#2D3139]">
                       {emp.organizationName || '—'}
                     </td>
-                    <td className="py-3 px-4 text-right">
+                    <td className="py-3 px-4 text-right overflow-hidden">
                       <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={() => {
@@ -1021,12 +1043,17 @@ export const DirectoriesView: React.FC<DirectoriesViewProps> = ({
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs select-none" style={{ tableLayout: 'fixed' }}>
+            <table className="w-full text-left border-collapse text-xs select-none table-fixed">
+              <colgroup>
+                <col style={{ width: `${docTypeWidths.id}px` }} />
+                <col style={{ width: `${docTypeWidths.name}px` }} />
+                <col style={{ width: `${docTypeWidths.actions}px` }} />
+              </colgroup>
               <thead>
                 <tr className="border-b border-[#2D3139] bg-[#0F1115]/60 text-gray-400 font-semibold uppercase tracking-wider">
                   <th
-                    style={{ width: docTypeWidths.id, minWidth: 50 }}
-                    className="py-3 px-4 relative group overflow-hidden"
+                    style={{ width: `${docTypeWidths.id}px`, minWidth: 50 }}
+                    className="py-3 px-4 relative group overflow-hidden border-r border-[#2D3139]"
                   >
                     <div
                       onClick={() => handleSortToggle(docTypeSort, setDocTypeSort, 'id')}
@@ -1037,13 +1064,13 @@ export const DirectoriesView: React.FC<DirectoriesViewProps> = ({
                     </div>
                     <div
                       onMouseDown={(e) => startResizing('docTypes', 'id', docTypeWidths.id, e)}
-                      className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-blue-500"
+                      className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-blue-500 z-10"
                     />
                   </th>
 
                   <th
-                    style={{ width: docTypeWidths.name, minWidth: 150 }}
-                    className="py-3 px-4 relative group overflow-hidden"
+                    style={{ width: `${docTypeWidths.name}px`, minWidth: 150 }}
+                    className="py-3 px-4 relative group overflow-hidden border-r border-[#2D3139]"
                   >
                     <div
                       onClick={() => handleSortToggle(docTypeSort, setDocTypeSort, 'name')}
@@ -1054,12 +1081,12 @@ export const DirectoriesView: React.FC<DirectoriesViewProps> = ({
                     </div>
                     <div
                       onMouseDown={(e) => startResizing('docTypes', 'name', docTypeWidths.name, e)}
-                      className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-blue-500"
+                      className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-blue-500 z-10"
                     />
                   </th>
 
                   <th
-                    style={{ width: docTypeWidths.actions, minWidth: 70 }}
+                    style={{ width: `${docTypeWidths.actions}px`, minWidth: 70 }}
                     className="py-3 px-4 text-right overflow-hidden"
                   >
                     <span className="truncate block" title="Действия">Действия</span>
@@ -1069,9 +1096,9 @@ export const DirectoriesView: React.FC<DirectoriesViewProps> = ({
               <tbody className="divide-y divide-[#2D3139] text-[#E0E0E0] font-medium">
                 {sortedDocTypes.map((type) => (
                   <tr key={type.id} className="hover:bg-[#1F222B]/60 transition-colors">
-                    <td className="py-3 px-4 font-mono text-gray-500 break-words">{type.id}</td>
-                    <td className="py-3 px-4 font-semibold text-[#E0E0E0] break-words whitespace-normal leading-relaxed">{type.name}</td>
-                    <td className="py-3 px-4 text-right">
+                    <td className="py-3 px-4 font-mono text-gray-500 break-words overflow-hidden border-r border-[#2D3139]">{type.id}</td>
+                    <td className="py-3 px-4 font-semibold text-[#E0E0E0] break-words whitespace-normal leading-relaxed overflow-hidden border-r border-[#2D3139]">{type.name}</td>
+                    <td className="py-3 px-4 text-right overflow-hidden">
                       <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={() => {
@@ -1137,12 +1164,17 @@ export const DirectoriesView: React.FC<DirectoriesViewProps> = ({
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs select-none" style={{ tableLayout: 'fixed' }}>
+            <table className="w-full text-left border-collapse text-xs select-none table-fixed">
+              <colgroup>
+                <col style={{ width: `${dirWidths.id}px` }} />
+                <col style={{ width: `${dirWidths.name}px` }} />
+                <col style={{ width: `${dirWidths.actions}px` }} />
+              </colgroup>
               <thead>
                 <tr className="border-b border-[#2D3139] bg-[#0F1115]/60 text-gray-400 font-semibold uppercase tracking-wider">
                   <th
-                    style={{ width: dirWidths.id, minWidth: 50 }}
-                    className="py-3 px-4 relative group overflow-hidden"
+                    style={{ width: `${dirWidths.id}px`, minWidth: 50 }}
+                    className="py-3 px-4 relative group overflow-hidden border-r border-[#2D3139]"
                   >
                     <div
                       onClick={() => handleSortToggle(dirSort, setDirSort, 'id')}
@@ -1153,13 +1185,13 @@ export const DirectoriesView: React.FC<DirectoriesViewProps> = ({
                     </div>
                     <div
                       onMouseDown={(e) => startResizing('directions', 'id', dirWidths.id, e)}
-                      className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-blue-500"
+                      className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-blue-500 z-10"
                     />
                   </th>
 
                   <th
-                    style={{ width: dirWidths.name, minWidth: 150 }}
-                    className="py-3 px-4 relative group overflow-hidden"
+                    style={{ width: `${dirWidths.name}px`, minWidth: 150 }}
+                    className="py-3 px-4 relative group overflow-hidden border-r border-[#2D3139]"
                   >
                     <div
                       onClick={() => handleSortToggle(dirSort, setDirSort, 'name')}
@@ -1170,12 +1202,12 @@ export const DirectoriesView: React.FC<DirectoriesViewProps> = ({
                     </div>
                     <div
                       onMouseDown={(e) => startResizing('directions', 'name', dirWidths.name, e)}
-                      className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-blue-500"
+                      className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-blue-500 z-10"
                     />
                   </th>
 
                   <th
-                    style={{ width: dirWidths.actions, minWidth: 70 }}
+                    style={{ width: `${dirWidths.actions}px`, minWidth: 70 }}
                     className="py-3 px-4 text-right overflow-hidden"
                   >
                     <span className="truncate block" title="Действия">Действия</span>
@@ -1185,9 +1217,9 @@ export const DirectoriesView: React.FC<DirectoriesViewProps> = ({
               <tbody className="divide-y divide-[#2D3139] text-[#E0E0E0] font-medium">
                 {sortedDirs.map((dir) => (
                   <tr key={dir.id} className="hover:bg-[#1F222B]/60 transition-colors">
-                    <td className="py-3 px-4 font-mono text-gray-500 break-words">{dir.id}</td>
-                    <td className="py-3 px-4 font-semibold text-[#E0E0E0] break-words whitespace-normal leading-relaxed">{dir.name}</td>
-                    <td className="py-3 px-4 text-right">
+                    <td className="py-3 px-4 font-mono text-gray-500 break-words overflow-hidden border-r border-[#2D3139]">{dir.id}</td>
+                    <td className="py-3 px-4 font-semibold text-[#E0E0E0] break-words whitespace-normal leading-relaxed overflow-hidden border-r border-[#2D3139]">{dir.name}</td>
+                    <td className="py-3 px-4 text-right overflow-hidden">
                       <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={() => {
