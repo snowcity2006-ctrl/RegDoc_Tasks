@@ -96,9 +96,8 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
       setActualEndDate('');
       setIsCompleted(false);
       setIsAccepted(false);
-      const defaultAssigneeId = employees.length > 0 ? employees[0].id : '';
-      setAssigneeId(defaultAssigneeId);
-      setSelectedAssigneeIds(defaultAssigneeId ? [defaultAssigneeId] : []);
+      setAssigneeId('');
+      setSelectedAssigneeIds([]);
       setIsMultipleAssignees(false);
       setResult('');
     }
@@ -343,36 +342,41 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
         }`}
       >
         {/* Заголовок */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-blue-700/50 bg-blue-600 text-white">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-white/20 text-white border border-white/30">
-              <CheckSquare className="w-5 h-5 text-white" />
+        <div
+          onDoubleClick={() => setIsMaximized((prev) => !prev)}
+          title="Двойной клик разворачивает / восстанавливает окно"
+          className="px-5 sm:px-6 py-3.5 sm:py-4 border-b border-[#2D3139] flex items-center justify-between bg-[#1F222B] shrink-0 select-none cursor-default"
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-lg bg-blue-600/10 text-blue-400 flex items-center justify-center border border-blue-500/20 shrink-0">
+              <CheckSquare className="w-4 h-4" />
             </div>
-            <div>
+            <div className="min-w-0">
               <h3
                 id="task-form-modal-title"
-                className="text-base font-bold text-white !text-white"
+                className="text-base font-bold text-[#E0E0E0] truncate"
               >
-                {initialData ? 'Редактирование задачи' : 'Создание новой задачи'}
+                {initialData ? `Редактирование задачи №${initialData.id}` : 'Создание новой задачи'}
               </h3>
-              <p className="text-xs text-blue-100 mt-0.5">
-                Контроль исполнения поручений и отслеживание сроков
+              <p className="text-xs text-gray-400 truncate">
+                Символом <span className="text-rose-400 font-bold">*</span> обозначены обязательные для заполнения поля
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1 shrink-0 ml-2">
             <button
               type="button"
               onClick={() => setIsMaximized(!isMaximized)}
-              className="p-1.5 rounded-lg text-blue-100 hover:text-white hover:bg-white/15 transition-colors cursor-pointer"
-              title={isMaximized ? 'Свернуть' : 'Развернуть'}
+              className="text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-[#2D3139] transition-colors cursor-pointer"
+              title={isMaximized ? 'Восстановить исходный размер' : 'Развернуть на весь экран'}
             >
               {isMaximized ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 rounded-lg text-blue-100 hover:text-white hover:bg-white/15 transition-colors cursor-pointer"
+              title="Закрыть окно"
+              className="text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-[#2D3139] transition-colors cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>

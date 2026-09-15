@@ -15,6 +15,7 @@ export const LogsModal: React.FC<LogsModalProps> = ({ isOpen, onClose }) => {
   const [filterLevel, setFilterLevel] = useState<string>('all');
   const [copied, setCopied] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
 
   const loadLogs = async () => {
     setLoading(true);
@@ -31,14 +32,14 @@ export const LogsModal: React.FC<LogsModalProps> = ({ isOpen, onClose }) => {
   useEffect(() => {
     if (isOpen) {
       loadLogs();
+      setConfirmClear(false);
     }
   }, [isOpen]);
 
   const handleClear = async () => {
-    if (confirm('Очистить журнал логов?')) {
-      await electronBridge.clearLogs();
-      setLogs([]);
-    }
+    await electronBridge.clearLogs();
+    setLogs([]);
+    setConfirmClear(false);
   };
 
   const handleCopy = () => {
@@ -102,13 +103,33 @@ export const LogsModal: React.FC<LogsModalProps> = ({ isOpen, onClose }) => {
             >
               {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
             </button>
-            <button
-              onClick={handleClear}
-              title="Очистить логи"
-              className="p-1.5 text-gray-400 hover:text-rose-400 hover:bg-[#1F222B] rounded-lg transition-colors cursor-pointer"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
+            {confirmClear ? (
+              <div className="flex items-center gap-1.5 bg-rose-950/60 border border-rose-800/80 px-2 py-1 rounded-lg text-xs">
+                <span className="text-rose-300 text-[11px] font-medium">Очистить?</span>
+                <button
+                  type="button"
+                  onClick={handleClear}
+                  className="px-2 py-0.5 bg-rose-600 hover:bg-rose-700 text-white rounded text-[11px] font-semibold cursor-pointer"
+                >
+                  Да
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmClear(false)}
+                  className="px-2 py-0.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded text-[11px] cursor-pointer"
+                >
+                  Отмена
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setConfirmClear(true)}
+                title="Очистить логи"
+                className="p-1.5 text-gray-400 hover:text-rose-400 hover:bg-[#1F222B] rounded-lg transition-colors cursor-pointer"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setIsMaximized((prev) => !prev)}

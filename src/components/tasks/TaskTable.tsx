@@ -17,6 +17,7 @@ import {
   Minimize2,
   Sliders,
   X,
+  AlertTriangle,
 } from 'lucide-react';
 import { TaskRecord } from '../../types';
 import { formatDateRussian } from '../../utils/date';
@@ -74,9 +75,18 @@ export const TaskTable: React.FC<TaskTableProps> = ({
   // Сортировка (включая колонку "#" / id по ТЗ)
   const [sortField, setSortField] = useState<TaskSortField>('daysRemaining');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-  const [deletingId, setDeletingId] = useState<number | null>(null);
   const [pendingCheckId, setPendingCheckId] = useState<number | null>(null);
   const [savingDateId, setSavingDateId] = useState<number | null>(null);
+  const [deleteDialog, setDeleteDialog] = useState<{
+    isOpen: boolean;
+    taskId: number | null;
+    taskText: string;
+  }>({
+    isOpen: false,
+    taskId: null,
+    taskText: '',
+  });
+  const [deleting, setDeleting] = useState(false);
 
   // 3. Управление шириной колонок (Column Resizing)
   const [colWidths, setColWidths] = useState<Record<string, number>>(() => {
@@ -330,13 +340,16 @@ export const TaskTable: React.FC<TaskTableProps> = ({
     }
   };
 
-  const handleDeleteConfirm = async (id: number) => {
-    if (window.confirm('Вы действительно хотите удалить данную задачу?')) {
+  const handleConfirmDelete = async () => {
+    if (deleteDialog.taskId !== null) {
+      setDeleting(true);
       try {
-        setDeletingId(id);
-        await onDelete(id);
+        await onDelete(deleteDialog.taskId);
+        setDeleteDialog({ isOpen: false, taskId: null, taskText: '' });
+      } catch (err: any) {
+        console.error('Ошибка при удалении задачи:', err);
       } finally {
-        setDeletingId(null);
+        setDeleting(false);
       }
     }
   };
@@ -790,10 +803,16 @@ export const TaskTable: React.FC<TaskTableProps> = ({
                         <Edit2 className="w-3.5 h-3.5" />
                       </button>
                       <button
+                        id={`btn-delete-task-${t.id}`}
                         type="button"
-                        disabled={deletingId === t.id}
-                        onClick={() => handleDeleteConfirm(t.id)}
-                        className="p-1.5 rounded-lg text-gray-400 hover:text-rose-400 hover:bg-[#2D3139] transition-colors cursor-pointer disabled:opacity-50"
+                        onClick={() =>
+                          setDeleteDialog({
+                            isOpen: true,
+                            taskId: t.id,
+                            taskText: t.task,
+                          })
+                        }
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-rose-400 hover:bg-[#2D3139] transition-colors cursor-pointer"
                         title="Удалить задачу"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -835,6 +854,63 @@ export const TaskTable: React.FC<TaskTableProps> = ({
             <MoveDiagonal className="w-4 h-4 stroke-[2.5]" />
           </div>
         </>
+      )}
+
+      {/* Модальное окно подтверждения удаления задачи */}
+      {deleteDialog.isOpen && (
+        <div
+          id="task-delete-dialog-backdrop"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs animate-in fade-in duration-150"
+          onClick={() => {
+            if (!deleting) setDeleteDialog({ isOpen: false, taskId: null, taskText: '' });
+          }}
+        >
+          <div
+            id="task-delete-dialog"
+            className="bg-[#171A21] rounded-2xl shadow-2xl border border-[#2D3139] w-full max-w-md overflow-hidden p-6 space-y-4 text-[#E0E0E0]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-rose-950/80 text-rose-400 flex items-center justify-center border border-rose-900 shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-[#E0E0E0]">
+                  Удаление задачи №{deleteDialog.taskId}
+                </h4>
+                <p className="text-xs text-gray-400">
+                  Подтверждение операции
+                </p>
+              </div>
+            </div>
+
+            <p className="text-xs text-gray-300 leading-relaxed">
+              Вы уверены, что хотите безвозвратно удалить задачу: <br />
+              <strong className="text-[#E0E0E0] break-words line-clamp-3 mt-1 block">«{deleteDialog.taskText}»</strong>?
+            </p>
+
+            <div className="pt-2 flex items-center justify-end gap-2">
+              <button
+                id="btn-cancel-delete-task"
+                type="button"
+                onClick={() => setDeleteDialog({ isOpen: false, taskId: null, taskText: '' })}
+                disabled={deleting}
+                className="px-4 py-2 text-gray-400 hover:text-white text-xs font-semibold rounded-xl hover:bg-[#1F222B] transition-colors cursor-pointer disabled:opacity-50"
+              >
+                Отмена
+              </button>
+              <button
+                id="btn-confirm-delete-task"
+                type="button"
+                onClick={handleConfirmDelete}
+                disabled={deleting}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-xl shadow-xs shadow-rose-500/20 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                {deleting ? 'Удаление...' : 'Удалить'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
