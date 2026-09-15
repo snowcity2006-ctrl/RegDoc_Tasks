@@ -103,8 +103,8 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
   };
 
   return (
-    <header className="sticky top-0 z-30 bg-[#171A21] border-b border-[#2D3139] transition-colors shadow-xs">
-      <div className="max-w-[2000px] mx-auto px-4 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-30 bg-[#171A21] border-b border-[#2D3139] transition-colors shadow-xs w-full">
+      <div className="w-full px-4 sm:px-6">
         <div className="flex items-center justify-between h-16 gap-4">
           
           {/* Левая часть: Логотип и переключение вкладок */}

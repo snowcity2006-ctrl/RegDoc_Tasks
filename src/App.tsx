@@ -490,8 +490,8 @@ export default function App() {
         </div>
       )}
 
-      {/* Основной контент */}
-      <main className="flex-1 max-w-[2000px] w-full mx-auto p-4 sm:p-6 space-y-5">
+      {/* Основной контент на всю ширину экрана */}
+      <main className="flex-1 w-full px-3 sm:px-4 py-3 sm:py-4 space-y-4">
         
         {/* Панель переключения разделов и быстрая регистрация документа */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-[#171A21] p-3 rounded-2xl border border-[#2D3139] shadow-xs">
@@ -650,8 +650,8 @@ export default function App() {
       </main>
 
       {/* Подвал приложения */}
-      <footer className="border-t border-[#2D3139] py-3 px-6 bg-[#171A21]/70 text-gray-400 text-xs">
-        <div className="max-w-[2000px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+      <footer className="border-t border-[#2D3139] py-3 px-4 sm:px-6 bg-[#171A21]/70 text-gray-400 text-xs w-full">
+        <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <span className="font-semibold text-[#E0E0E0]">
               СЭД «Документооборот ОПР»

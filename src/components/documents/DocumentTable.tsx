@@ -437,7 +437,7 @@ export const DocumentTable: React.FC<DocumentTableProps> = ({
             : {
                 height: `${tableHeight}px`,
                 width: tableWidth ? `${tableWidth}px` : '100%',
-                maxWidth: 'calc(100vw - 2rem)',
+                maxWidth: '100%',
               }
         }
         className={`${
@@ -474,6 +474,23 @@ export const DocumentTable: React.FC<DocumentTableProps> = ({
 
           {/* Элементы управления масштабированием и размером окна таблицы */}
           <div className="flex items-center gap-1.5 text-xs text-blue-100 shrink-0">
+            {/* Кнопка: на 100% ширины окна */}
+            {tableWidth && (
+              <button
+                type="button"
+                onClick={() => {
+                  setTableWidth(null);
+                  try {
+                    localStorage.removeItem('docflow_table_width');
+                  } catch {}
+                }}
+                title="Растянуть таблицу на 100% ширины окна"
+                className="px-2 py-1 bg-blue-700/80 hover:bg-blue-800 text-white rounded-lg transition-colors cursor-pointer text-[11px] font-medium border border-blue-400/30"
+              >
+                100% ширины
+              </button>
+            )}
+
             {/* Сброс размера */}
             <button
               type="button"
@@ -521,10 +538,8 @@ export const DocumentTable: React.FC<DocumentTableProps> = ({
         {/* Контейнер таблицы с горизонтальным и вертикальным скроллом */}
         <div ref={tableContainerRef} className="overflow-auto flex-1 min-h-[160px]">
           <table
-            className="text-left border-collapse text-xs select-none"
+            className="w-full text-left border-collapse text-xs select-none table-fixed"
             style={{
-              tableLayout: 'fixed',
-              width: `${totalTableWidth}px`,
               minWidth: `${totalTableWidth}px`,
             }}
           >
