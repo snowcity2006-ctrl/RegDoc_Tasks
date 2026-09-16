@@ -1,8 +1,15 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { electronBridge } from '../services/electronBridge';
 
 const ZOOM_STORAGE_KEY = 'docflow_ui_zoom';
-export const ZOOM_STEPS = [0.8, 0.9, 1.0, 1.1, 1.25, 1.4, 1.5];
+export const ZOOM_STEP = 0.05; // Шаг изменения 5%
+export const MIN_ZOOM = 0.50; // Минимальный масштаб 50%
+export const MAX_ZOOM = 2.00; // Максимальный масштаб 200%
+
+// Точное округление до кратного 0.05 без артефактов вещественных чисел
+export const roundToStep = (val: number): number => {
+  return Math.round(val * 20) / 20;
+};
 
 export function useZoom() {
   const [zoom, setZoomState] = useState<number>(() => {
@@ -10,22 +17,36 @@ export function useZoom() {
       const saved = localStorage.getItem(ZOOM_STORAGE_KEY);
       if (saved) {
         const val = parseFloat(saved);
-        if (!isNaN(val) && val >= 0.7 && val <= 1.8) {
-          return val;
+        if (!isNaN(val) && val >= MIN_ZOOM && val <= MAX_ZOOM) {
+          return roundToStep(val);
         }
       }
     } catch {}
     return 1.0;
   });
 
+  const [showHud, setShowHud] = useState(false);
+  const hudTimerRef = useRef<number | null>(null);
+  const lastWheelTimeRef = useRef<number>(0);
+
+  const triggerHud = useCallback(() => {
+    setShowHud(true);
+    if (hudTimerRef.current) {
+      window.clearTimeout(hudTimerRef.current);
+    }
+    hudTimerRef.current = window.setTimeout(() => {
+      setShowHud(false);
+    }, 1800);
+  }, []);
+
   const applyZoom = useCallback((factor: number) => {
-    const rounded = Math.round(factor * 100) / 100;
+    const rounded = roundToStep(factor);
     try {
-      // Применяем через Electron webFrame, если запущен в Electron
+      // 1. Применяем через Electron webFrame, если запущен в нативном Electron
       if (electronBridge.setZoomFactor) {
         electronBridge.setZoomFactor(rounded);
       }
-      // И гарантированно через стили CSS zoom для браузерного рендера / preview
+      // 2. И гарантированно через CSS zoom для браузерного рендеринга
       (document.documentElement.style as any).zoom = String(rounded);
       document.documentElement.style.setProperty('--app-scale', String(rounded));
       localStorage.setItem(ZOOM_STORAGE_KEY, String(rounded));
@@ -35,41 +56,42 @@ export function useZoom() {
   }, []);
 
   const setZoom = useCallback(
-    (newZoom: number) => {
-      const clamped = Math.min(1.6, Math.max(0.75, Math.round(newZoom * 100) / 100));
+    (newZoom: number, showFeedback = true) => {
+      const clamped = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, roundToStep(newZoom)));
       setZoomState(clamped);
       applyZoom(clamped);
+      if (showFeedback) {
+        triggerHud();
+      }
     },
-    [applyZoom]
+    [applyZoom, triggerHud]
   );
 
   const zoomIn = useCallback(() => {
-    const next = ZOOM_STEPS.find((s) => s > zoom + 0.02);
-    setZoom(next ?? Math.min(1.6, zoom + 0.1));
+    setZoom(roundToStep(zoom + ZOOM_STEP));
   }, [zoom, setZoom]);
 
   const zoomOut = useCallback(() => {
-    const prev = [...ZOOM_STEPS].reverse().find((s) => s < zoom - 0.02);
-    setZoom(prev ?? Math.max(0.75, zoom - 0.1));
+    setZoom(roundToStep(zoom - ZOOM_STEP));
   }, [zoom, setZoom]);
 
   const resetZoom = useCallback(() => {
     setZoom(1.0);
   }, [setZoom]);
 
-  // Применяем зум при первой инициализации
+  // Применяем зум при первой инициализации без показа HUD
   useEffect(() => {
     applyZoom(zoom);
   }, [zoom, applyZoom]);
 
-  // Слушатель горячих клавиш: Ctrl + Plus, Ctrl + Minus, Ctrl + 0, Ctrl + MouseWheel
+  // Слушатель событий: Ctrl + колёсико мыши (шаг 5%), Ctrl + '+', Ctrl + '-', Ctrl + '0'
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey) {
-        if (e.key === '=' || e.key === '+' || e.code === 'NumpadAdd') {
+        if (e.key === '=' || e.key === '+' || e.code === 'NumpadAdd' || e.key === 'Add') {
           e.preventDefault();
           zoomIn();
-        } else if (e.key === '-' || e.code === 'NumpadSubtract') {
+        } else if (e.key === '-' || e.code === 'NumpadSubtract' || e.key === 'Subtract') {
           e.preventDefault();
           zoomOut();
         } else if (e.key === '0' || e.code === 'Numpad0') {
@@ -81,10 +103,19 @@ export function useZoom() {
 
     const handleWheel = (e: WheelEvent) => {
       if (e.ctrlKey || e.metaKey) {
+        // Блокируем встроенное браузерное поведение для управляемого шага 5%
         e.preventDefault();
+
+        // Небольшой троттлинг (40 мс) для предотвращения резкого прокручивания на тачпадах
+        const now = Date.now();
+        if (now - lastWheelTimeRef.current < 40) return;
+        lastWheelTimeRef.current = now;
+
         if (e.deltaY < 0) {
+          // Колёсико вверх — увеличиваем масштаб на 5%
           zoomIn();
         } else if (e.deltaY > 0) {
+          // Колёсико вниз — уменьшаем масштаб на 5%
           zoomOut();
         }
       }
@@ -96,15 +127,20 @@ export function useZoom() {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('wheel', handleWheel);
+      if (hudTimerRef.current) {
+        window.clearTimeout(hudTimerRef.current);
+      }
     };
   }, [zoomIn, zoomOut, resetZoom]);
 
   return {
     zoom,
     zoomPercent: Math.round(zoom * 100),
+    showHud,
     setZoom,
     zoomIn,
     zoomOut,
     resetZoom,
   };
 }
+

@@ -47,9 +47,12 @@ import { EmployeeModal } from './components/directories/EmployeeModal';
 import { DocTypeModal } from './components/directories/DocTypeModal';
 import { DirectionModal } from './components/directories/DirectionModal';
 import { TasksView } from './components/tasks/TasksView';
+import { useZoom } from './hooks/useZoom';
+import { ZoomIndicatorHUD } from './components/ZoomIndicatorHUD';
 
 export default function App() {
   const { theme, setTheme } = useTheme();
+  const { zoom, zoomPercent, showHud, zoomIn, zoomOut, resetZoom } = useZoom();
 
   // Основная навигация: 'documents' | 'directories' | 'tasks'
   const [activeTab, setActiveTab] = useState<'documents' | 'directories' | 'tasks'>('documents');
@@ -668,6 +671,35 @@ export default function App() {
             <span>Блокировка busy_timeout: <strong>5000 мс</strong></span>
             <span>•</span>
             <span>Режим журнала: <strong>DELETE (Network Safe)</strong></span>
+            <span>•</span>
+            {/* Элемент управления масштабом интерфейса (шаг 5%) */}
+            <div className="flex items-center gap-1 bg-[#0F1115] px-2 py-0.5 rounded-lg border border-[#2D3139] text-xs select-none">
+              <span className="text-[10px] text-gray-400 mr-0.5">Масштаб:</span>
+              <button
+                type="button"
+                onClick={zoomOut}
+                title="Уменьшить масштаб на 5% (Ctrl + колёсико вниз или Ctrl + -)"
+                className="w-5 h-5 flex items-center justify-center rounded hover:bg-[#2D3139] text-gray-300 hover:text-white cursor-pointer font-bold text-xs transition-colors"
+              >
+                −
+              </button>
+              <button
+                type="button"
+                onClick={resetZoom}
+                title="Текущий масштаб. Кликните для сброса к 100% (Ctrl + 0)"
+                className="px-1.5 font-mono text-[11px] font-semibold text-blue-400 hover:text-blue-300 cursor-pointer transition-colors"
+              >
+                {zoomPercent}%
+              </button>
+              <button
+                type="button"
+                onClick={zoomIn}
+                title="Увеличить масштаб на 5% (Ctrl + колёсико вверх или Ctrl + +)"
+                className="w-5 h-5 flex items-center justify-center rounded hover:bg-[#2D3139] text-gray-300 hover:text-white cursor-pointer font-bold text-xs transition-colors"
+              >
+                +
+              </button>
+            </div>
           </div>
         </div>
       </footer>
@@ -786,6 +818,15 @@ export default function App() {
           await handleSaveDir(dirData);
           setQuickDirectionModalOpen(false);
         }}
+      />
+
+      {/* Всплывающий индикатор масштабирования при Ctrl+колёсико мыши (шаг 5%) */}
+      <ZoomIndicatorHUD
+        zoomPercent={zoomPercent}
+        showHud={showHud}
+        onZoomIn={zoomIn}
+        onZoomOut={zoomOut}
+        onResetZoom={resetZoom}
       />
 
     </div>
