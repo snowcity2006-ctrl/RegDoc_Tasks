@@ -25,10 +25,14 @@ export function useZoom() {
     return 1.0;
   });
 
+  const zoomRef = useRef<number>(zoom);
+  zoomRef.current = zoom;
+
   const [showHud, setShowHud] = useState(false);
   const hudTimerRef = useRef<number | null>(null);
   const lastWheelTimeRef = useRef<number>(0);
 
+  // Показ HUD с гарантированным автоматическим скрытием через 1.6 сек
   const triggerHud = useCallback(() => {
     setShowHud(true);
     if (hudTimerRef.current) {
@@ -36,7 +40,25 @@ export function useZoom() {
     }
     hudTimerRef.current = window.setTimeout(() => {
       setShowHud(false);
-    }, 1800);
+      hudTimerRef.current = null;
+    }, 1600);
+  }, []);
+
+  const closeHud = useCallback(() => {
+    if (hudTimerRef.current) {
+      window.clearTimeout(hudTimerRef.current);
+      hudTimerRef.current = null;
+    }
+    setShowHud(false);
+  }, []);
+
+  // Очистка таймера при полном размонтировании хука
+  useEffect(() => {
+    return () => {
+      if (hudTimerRef.current) {
+        window.clearTimeout(hudTimerRef.current);
+      }
+    };
   }, []);
 
   const applyZoom = useCallback((factor: number) => {
@@ -58,6 +80,7 @@ export function useZoom() {
   const setZoom = useCallback(
     (newZoom: number, showFeedback = true) => {
       const clamped = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, roundToStep(newZoom)));
+      zoomRef.current = clamped;
       setZoomState(clamped);
       applyZoom(clamped);
       if (showFeedback) {
@@ -68,23 +91,23 @@ export function useZoom() {
   );
 
   const zoomIn = useCallback(() => {
-    setZoom(roundToStep(zoom + ZOOM_STEP));
-  }, [zoom, setZoom]);
+    setZoom(roundToStep(zoomRef.current + ZOOM_STEP));
+  }, [setZoom]);
 
   const zoomOut = useCallback(() => {
-    setZoom(roundToStep(zoom - ZOOM_STEP));
-  }, [zoom, setZoom]);
+    setZoom(roundToStep(zoomRef.current - ZOOM_STEP));
+  }, [setZoom]);
 
   const resetZoom = useCallback(() => {
     setZoom(1.0);
   }, [setZoom]);
 
-  // Применяем зум при первой инициализации без показа HUD
+  // Применяем сохранённый зум при первой загрузке без всплывающего HUD
   useEffect(() => {
     applyZoom(zoom);
   }, [zoom, applyZoom]);
 
-  // Слушатель событий: Ctrl + колёсико мыши (шаг 5%), Ctrl + '+', Ctrl + '-', Ctrl + '0'
+  // Глобальный слушатель: Ctrl + колёсико мыши (шаг 5%), Ctrl + '+', Ctrl + '-', Ctrl + '0'
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey) {
@@ -103,19 +126,19 @@ export function useZoom() {
 
     const handleWheel = (e: WheelEvent) => {
       if (e.ctrlKey || e.metaKey) {
-        // Блокируем встроенное браузерное поведение для управляемого шага 5%
+        // Блокируем встроенное браузерное поведение
         e.preventDefault();
 
-        // Небольшой троттлинг (40 мс) для предотвращения резкого прокручивания на тачпадах
+        // Троттлинг 50 мс для защиты от чрезмерной прокрутки на тачпадах
         const now = Date.now();
-        if (now - lastWheelTimeRef.current < 40) return;
+        if (now - lastWheelTimeRef.current < 50) return;
         lastWheelTimeRef.current = now;
 
         if (e.deltaY < 0) {
-          // Колёсико вверх — увеличиваем масштаб на 5%
+          // Колёсико вверх — увеличиваем масштаб на +5%
           zoomIn();
         } else if (e.deltaY > 0) {
-          // Колёсико вниз — уменьшаем масштаб на 5%
+          // Колёсико вниз — уменьшаем масштаб на -5%
           zoomOut();
         }
       }
@@ -127,9 +150,6 @@ export function useZoom() {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('wheel', handleWheel);
-      if (hudTimerRef.current) {
-        window.clearTimeout(hudTimerRef.current);
-      }
     };
   }, [zoomIn, zoomOut, resetZoom]);
 
@@ -141,6 +161,8 @@ export function useZoom() {
     zoomIn,
     zoomOut,
     resetZoom,
+    closeHud,
+    triggerHud,
   };
 }
 

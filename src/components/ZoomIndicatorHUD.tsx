@@ -1,5 +1,5 @@
 import React from 'react';
-import { ZoomIn, RotateCcw } from 'lucide-react';
+import { ZoomIn, RotateCcw, X } from 'lucide-react';
 
 interface ZoomIndicatorHUDProps {
   zoomPercent: number;
@@ -7,6 +7,7 @@ interface ZoomIndicatorHUDProps {
   onZoomIn: () => void;
   onZoomOut: () => void;
   onResetZoom: () => void;
+  onClose?: () => void;
 }
 
 export const ZoomIndicatorHUD: React.FC<ZoomIndicatorHUDProps> = ({
@@ -15,13 +16,14 @@ export const ZoomIndicatorHUD: React.FC<ZoomIndicatorHUDProps> = ({
   onZoomIn,
   onZoomOut,
   onResetZoom,
+  onClose,
 }) => {
   if (!showHud) return null;
 
   return (
     <div
       id="zoom-indicator-hud"
-      className="fixed bottom-14 right-6 z-60 bg-[#171A21]/95 text-[#E0E0E0] px-4 py-3 rounded-2xl border border-blue-500/60 shadow-2xl backdrop-blur-md flex items-center gap-3.5 animate-in fade-in zoom-in-95 duration-150 select-none"
+      className="fixed bottom-14 right-6 z-60 bg-[#171A21]/95 text-[#E0E0E0] px-4 py-3 rounded-2xl border border-blue-500/60 shadow-2xl backdrop-blur-md flex items-center gap-3.5 select-none transition-all duration-200"
       role="status"
       aria-live="polite"
     >
@@ -69,7 +71,19 @@ export const ZoomIndicatorHUD: React.FC<ZoomIndicatorHUDProps> = ({
         >
           +
         </button>
+
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            title="Закрыть уведомление"
+            className="w-7 h-7 ml-1 flex items-center justify-center rounded-lg hover:bg-red-500/20 text-gray-400 hover:text-red-300 transition-colors cursor-pointer"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        )}
       </div>
     </div>
   );
 };
+

@@ -509,8 +509,16 @@ class WebMockDatabase implements ElectronAPI {
       throw new Error('Нельзя удалить организацию, так как к ней привязаны структурные подразделения');
     }
 
+    const emps = await this.getEmployees();
+    const isUsedInEmp = emps.some((e) => e.organizationId === id);
+    if (isUsedInEmp) {
+      throw new Error('Нельзя удалить организацию, так как к ней привязаны сотрудники');
+    }
+
     const docs = await this.getDocuments();
-    const isUsedInDocs = docs.some((d) => d.senderId === id || d.recipientId === id);
+    const isUsedInDocs = docs.some(
+      (d) => d.senderId === id || d.recipientId === id || (d.recipientIds && d.recipientIds.includes(id))
+    );
     if (isUsedInDocs) {
       throw new Error('Нельзя удалить организацию, так как она указана в зарегистрированных документах');
     }
@@ -567,6 +575,8 @@ class WebMockDatabase implements ElectronAPI {
     if (dept.id) {
       const idx = list.findIndex((i) => i.id === dept.id);
       if (idx === -1) throw new Error('Подразделение не найдено');
+      const oldShortName = list[idx].shortName;
+      const oldOrgId = list[idx].organizationId;
       saved = {
         ...list[idx],
         ...dept,
@@ -576,6 +586,28 @@ class WebMockDatabase implements ElectronAPI {
         updatedAt: now,
       };
       list[idx] = saved;
+
+      // Каскадное обновление сотрудников при переименовании сокращения подразделения
+      if (oldShortName !== cleanShortName || oldOrgId !== dept.organizationId) {
+        const empsRaw = localStorage.getItem(STORAGE_KEYS.EMPLOYEES);
+        if (empsRaw) {
+          try {
+            const empsList: Employee[] = JSON.parse(empsRaw);
+            let changed = false;
+            const updatedEmps = empsList.map((e) => {
+              if (e.organizationId === oldOrgId && e.departmentShortName === oldShortName) {
+                changed = true;
+                return { ...e, departmentShortName: cleanShortName, organizationId: dept.organizationId, updatedAt: now };
+              }
+              return e;
+            });
+            if (changed) {
+              localStorage.setItem(STORAGE_KEYS.EMPLOYEES, JSON.stringify(updatedEmps));
+            }
+          } catch {}
+        }
+      }
+
       await this.addLog('info', 'db', `Обновлено структурное подразделение: "${saved.name}" (ID: ${saved.id})`);
     } else {
       const newId = list.length > 0 ? Math.max(...list.map((i) => i.id)) + 1 : 1;
@@ -604,9 +636,18 @@ class WebMockDatabase implements ElectronAPI {
 
     // Проверка сотрудников
     const emps = await this.getEmployees();
-    const isUsed = emps.some((e) => e.departmentShortName === target.shortName && e.organizationId === target.organizationId);
-    if (isUsed) {
+    const isUsedInEmps = emps.some((e) => e.departmentShortName === target.shortName && e.organizationId === target.organizationId);
+    if (isUsedInEmps) {
       throw new Error('Нельзя удалить подразделение, к которому привязаны сотрудники');
+    }
+
+    // Проверка документов
+    const docs = await this.getDocuments();
+    const isUsedInDocs = docs.some(
+      (d) => d.senderDepartmentId === id || (d.recipientDepartmentIds && d.recipientDepartmentIds.includes(id))
+    );
+    if (isUsedInDocs) {
+      throw new Error('Нельзя удалить подразделение, так как оно указано в зарегистрированных документах');
     }
 
     const filtered = list.filter((i) => i.id !== id);
@@ -643,6 +684,7 @@ class WebMockDatabase implements ElectronAPI {
     if (emp.id) {
       const idx = list.findIndex((i) => i.id === emp.id);
       if (idx === -1) throw new Error('Сотрудник не найден');
+      const oldFullName = list[idx].fullName;
       saved = {
         ...list[idx],
         ...emp,
@@ -651,6 +693,55 @@ class WebMockDatabase implements ElectronAPI {
         updatedAt: now,
       };
       list[idx] = saved;
+
+      // Каскадное обновление имени сотрудника в задачах и документах
+      if (oldFullName !== saved.fullName) {
+        try {
+          const tasksRaw = localStorage.getItem(STORAGE_KEYS.TASKS);
+          if (tasksRaw) {
+            const tasksList: TaskRecord[] = JSON.parse(tasksRaw);
+            let tasksChanged = false;
+            const updatedTasks = tasksList.map((t) => {
+              if (t.assigneeId === emp.id) {
+                tasksChanged = true;
+                return { ...t, assigneeName: saved.fullName, updatedAt: now };
+              }
+              return t;
+            });
+            if (tasksChanged) {
+              localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(updatedTasks));
+            }
+          }
+
+          const docsRaw = localStorage.getItem(STORAGE_KEYS.DOCUMENTS);
+          if (docsRaw) {
+            const docsList: DocumentRecord[] = JSON.parse(docsRaw);
+            let docsChanged = false;
+            const updatedDocs = docsList.map((d) => {
+              let changed = false;
+              let sEmpName = d.senderEmployeeName;
+              let signEmpName = d.signatoryEmployeeName;
+              if (d.senderEmployeeId === emp.id) {
+                sEmpName = saved.fullName;
+                changed = true;
+              }
+              if (d.signatoryEmployeeId === emp.id) {
+                signEmpName = saved.fullName;
+                changed = true;
+              }
+              if (changed) {
+                docsChanged = true;
+                return { ...d, senderEmployeeName: sEmpName, signatoryEmployeeName: signEmpName, updatedAt: now };
+              }
+              return d;
+            });
+            if (docsChanged) {
+              localStorage.setItem(STORAGE_KEYS.DOCUMENTS, JSON.stringify(updatedDocs));
+            }
+          }
+        } catch {}
+      }
+
       await this.addLog('info', 'db', `Обновлен сотрудник: "${saved.fullName}" (ID: ${saved.id})`);
     } else {
       const newId = list.length > 0 ? Math.max(...list.map((i) => i.id)) + 1 : 1;
@@ -675,6 +766,21 @@ class WebMockDatabase implements ElectronAPI {
 
   async deleteEmployee(id: number): Promise<{ success: boolean }> {
     const list = await this.getEmployees();
+
+    // Проверка задач
+    const tasks = await this.getTasks();
+    const isUsedInTasks = tasks.some((t) => t.assigneeId === id);
+    if (isUsedInTasks) {
+      throw new Error('Нельзя удалить сотрудника, так как на него назначены задачи');
+    }
+
+    // Проверка документов
+    const docs = await this.getDocuments();
+    const isUsedInDocs = docs.some((d) => d.senderEmployeeId === id || d.signatoryEmployeeId === id);
+    if (isUsedInDocs) {
+      throw new Error('Нельзя удалить сотрудника, так как он указан в зарегистрированных документах');
+    }
+
     const filtered = list.filter((i) => i.id !== id);
     localStorage.setItem(STORAGE_KEYS.EMPLOYEES, JSON.stringify(filtered));
     this.touchUpdateTime();
@@ -823,21 +929,18 @@ class WebMockDatabase implements ElectronAPI {
       const senderName = doc.senderId ? (orgMap.get(doc.senderId) || '—') : '—';
 
       let senderDepartmentName = doc.senderDepartmentName;
-      if (!senderDepartmentName && doc.senderDepartmentId) {
-        const sDept = deptMap.get(doc.senderDepartmentId);
-        if (sDept) senderDepartmentName = sDept;
+      if (doc.senderDepartmentId && deptMap.has(doc.senderDepartmentId)) {
+        senderDepartmentName = deptMap.get(doc.senderDepartmentId);
       }
 
       let senderEmployeeName = doc.senderEmployeeName;
-      if (!senderEmployeeName && doc.senderEmployeeId) {
-        const sEmp = empMap.get(doc.senderEmployeeId);
-        if (sEmp) senderEmployeeName = sEmp;
+      if (doc.senderEmployeeId && empMap.has(doc.senderEmployeeId)) {
+        senderEmployeeName = empMap.get(doc.senderEmployeeId);
       }
 
       let signatoryEmployeeName = doc.signatoryEmployeeName;
-      if (!signatoryEmployeeName && doc.signatoryEmployeeId) {
-        const signEmp = empMap.get(doc.signatoryEmployeeId);
-        if (signEmp) signatoryEmployeeName = signEmp;
+      if (doc.signatoryEmployeeId && empMap.has(doc.signatoryEmployeeId)) {
+        signatoryEmployeeName = empMap.get(doc.signatoryEmployeeId);
       }
       
       let recipientName = '—';
@@ -855,7 +958,7 @@ class WebMockDatabase implements ElectronAPI {
       }
 
       let recipientDepartmentNames = doc.recipientDepartmentNames;
-      if (!recipientDepartmentNames && doc.recipientDepartmentIds && doc.recipientDepartmentIds.length > 0) {
+      if (doc.recipientDepartmentIds && doc.recipientDepartmentIds.length > 0) {
         const dNames = doc.recipientDepartmentIds
           .map((id) => deptMap.get(id))
           .filter(Boolean);
@@ -991,10 +1094,7 @@ class WebMockDatabase implements ElectronAPI {
     const empMap = new Map(employees.map((e) => [e.id, e.fullName]));
 
     return tasks.map((t) => {
-      let assigneeName = t.assigneeName;
-      if (!assigneeName && t.assigneeId) {
-        assigneeName = empMap.get(t.assigneeId) || '';
-      }
+      let assigneeName = (t.assigneeId && empMap.get(t.assigneeId)) || t.assigneeName || '';
       return {
         ...t,
         assigneeName: assigneeName || '',

@@ -771,13 +771,107 @@ class SQLiteDatabaseManager {
       } else {
         await this.ensureColumnsExist();
       }
+      this.syncAllRelatedRecords();
     } catch (e: any) {
       logger.log('warn', 'db', `Проверка схемы organizations: ${e.message}`);
       try {
         this.populateFullSchemaAndDefaults(this.db);
+        this.syncAllRelatedRecords();
       } catch (schemaErr: any) {
         logger.log('error', 'db', `Ошибка создания схемы: ${schemaErr.message}`);
       }
+    }
+  }
+
+  /**
+   * Полная синхронизация и приведение в соответствие всех денормализованных и связанных данных
+   * между справочниками (организации, подразделения, сотрудники) и таблицами документов и задач в SQLite.
+   */
+  public syncAllRelatedRecords(): void {
+    if (!this.db || !this.db.open) return;
+    try {
+      // 1. Задачи: актуализируем assignee_name из таблицы employees
+      this.db.prepare(`
+        UPDATE tasks 
+        SET assignee_name = (SELECT full_name FROM employees WHERE employees.id = tasks.assignee_id),
+            updated_at = CURRENT_TIMESTAMP
+        WHERE assignee_id IS NOT NULL 
+          AND EXISTS (
+            SELECT 1 FROM employees 
+            WHERE employees.id = tasks.assignee_id 
+              AND (tasks.assignee_name IS NULL OR employees.full_name != tasks.assignee_name)
+          )
+      `).run();
+
+      // 2. Документы: актуализируем sender_dept_name из таблицы departments
+      this.db.prepare(`
+        UPDATE documents 
+        SET sender_dept_name = (SELECT short_name FROM departments WHERE departments.id = documents.sender_dept_id),
+            updated_at = CURRENT_TIMESTAMP
+        WHERE sender_dept_id IS NOT NULL 
+          AND EXISTS (
+            SELECT 1 FROM departments 
+            WHERE departments.id = documents.sender_dept_id 
+              AND (documents.sender_dept_name IS NULL OR departments.short_name != documents.sender_dept_name)
+          )
+      `).run();
+
+      // 3. Документы: актуализируем sender_emp_name из таблицы employees
+      this.db.prepare(`
+        UPDATE documents 
+        SET sender_emp_name = (SELECT full_name FROM employees WHERE employees.id = documents.sender_emp_id),
+            updated_at = CURRENT_TIMESTAMP
+        WHERE sender_emp_id IS NOT NULL 
+          AND EXISTS (
+            SELECT 1 FROM employees 
+            WHERE employees.id = documents.sender_emp_id 
+              AND (documents.sender_emp_name IS NULL OR employees.full_name != documents.sender_emp_name)
+          )
+      `).run();
+
+      // 4. Документы: актуализируем signatory_emp_name из таблицы employees
+      this.db.prepare(`
+        UPDATE documents 
+        SET signatory_emp_name = (SELECT full_name FROM employees WHERE employees.id = documents.signatory_emp_id),
+            updated_at = CURRENT_TIMESTAMP
+        WHERE signatory_emp_id IS NOT NULL 
+          AND EXISTS (
+            SELECT 1 FROM employees 
+            WHERE employees.id = documents.signatory_emp_id 
+              AND (documents.signatory_emp_name IS NULL OR employees.full_name != documents.signatory_emp_name)
+          )
+      `).run();
+
+      // 5. Документы: актуализируем recipient_dept_names для списков подразделений
+      const depts = this.db.prepare('SELECT id, short_name FROM departments').all() as Array<{ id: number; short_name: string }>;
+      const deptMap = new Map(depts.map((d) => [d.id, d.short_name]));
+
+      const docsWithDepts = this.db.prepare(`
+        SELECT id, recipient_dept_ids, recipient_dept_names 
+        FROM documents 
+        WHERE recipient_dept_ids IS NOT NULL AND recipient_dept_ids != ''
+      `).all() as Array<{ id: number; recipient_dept_ids: string; recipient_dept_names: string | null }>;
+
+      const updateRecipientDeptNamesStmt = this.db.prepare(`
+        UPDATE documents 
+        SET recipient_dept_names = ?, updated_at = CURRENT_TIMESTAMP 
+        WHERE id = ?
+      `);
+
+      for (const d of docsWithDepts) {
+        try {
+          const ids = JSON.parse(d.recipient_dept_ids);
+          if (Array.isArray(ids) && ids.length > 0) {
+            const names = ids.map((id: number) => deptMap.get(id)).filter(Boolean);
+            const joined = names.join(', ');
+            if (joined && joined !== d.recipient_dept_names) {
+              updateRecipientDeptNamesStmt.run(joined, d.id);
+            }
+          }
+        } catch {}
+      }
+    } catch (e: any) {
+      logger.log('warn', 'db', `Синхронизация связей записей SQLite: ${e.message}`);
     }
   }
 
@@ -1047,11 +1141,17 @@ class SQLiteDatabaseManager {
         this.db.prepare('UPDATE organizations SET name = ?, director = ?, email = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
           .run(org.name, org.director || '', org.email || '', org.id);
         targetId = org.id;
+
+        // Каскадное обновление связанных документов при переименовании организации
+        this.db.prepare('UPDATE documents SET updated_at = CURRENT_TIMESTAMP WHERE sender_id = ? OR recipient_id = ? OR recipient_ids LIKE ?')
+          .run(org.id, org.id, `%${org.id}%`);
       } else {
         const info = this.db.prepare('INSERT INTO organizations (name, director, email) VALUES (?, ?, ?)')
           .run(org.name, org.director || '', org.email || '');
         targetId = Number(info.lastInsertRowid);
       }
+
+      this.syncAllRelatedRecords();
 
       const row = this.db.prepare('SELECT id, name, director, email, created_at as createdAt, updated_at as updatedAt FROM organizations WHERE id = ?').get(targetId) as Organization;
       if (!row) throw new Error('Не удалось прочитать сохраненную организацию');
@@ -1061,6 +1161,18 @@ class SQLiteDatabaseManager {
 
   public async deleteOrganization(id: number): Promise<{ success: boolean }> {
     return await this.runWriteTransaction(() => {
+      const depts = this.db.prepare('SELECT count(*) as c FROM departments WHERE organization_id = ?').get(id) as { c: number };
+      if (depts && depts.c > 0) {
+        throw new Error('Нельзя удалить организацию, так как к ней привязаны структурные подразделения');
+      }
+      const emps = this.db.prepare('SELECT count(*) as c FROM employees WHERE organization_id = ?').get(id) as { c: number };
+      if (emps && emps.c > 0) {
+        throw new Error('Нельзя удалить организацию, так как к ней привязаны сотрудники');
+      }
+      const docs = this.db.prepare('SELECT count(*) as c FROM documents WHERE sender_id = ? OR recipient_id = ? OR recipient_ids LIKE ?').get(id, id, `%${id}%`) as { c: number };
+      if (docs && docs.c > 0) {
+        throw new Error('Нельзя удалить организацию, так как она указана в зарегистрированных документах');
+      }
       this.db.prepare('DELETE FROM organizations WHERE id = ?').run(id);
       return { success: true };
     });
@@ -1082,14 +1194,27 @@ class SQLiteDatabaseManager {
     return await this.runWriteTransaction(() => {
       let targetId: number;
       if (dept.id) {
+        const oldDept = this.db.prepare('SELECT short_name, organization_id FROM departments WHERE id = ?').get(dept.id) as { short_name: string; organization_id: number } | undefined;
         this.db.prepare('UPDATE departments SET name = ?, short_name = ?, organization_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
           .run(dept.name, dept.shortName, dept.organizationId, dept.id);
         targetId = dept.id;
+
+        if (oldDept && (oldDept.short_name !== dept.shortName || oldDept.organization_id !== dept.organizationId)) {
+          // Каскадное обновление сотрудников, связанных со старым кратким наименованием подразделения
+          this.db.prepare('UPDATE employees SET department_short_name = ?, organization_id = ?, updated_at = CURRENT_TIMESTAMP WHERE department_short_name = ? AND organization_id = ?')
+            .run(dept.shortName, dept.organizationId, oldDept.short_name, oldDept.organization_id);
+        }
+
+        // Каскадное обновление денормализованного наименования подразделения в документах
+        this.db.prepare('UPDATE documents SET sender_dept_name = ?, updated_at = CURRENT_TIMESTAMP WHERE sender_dept_id = ?')
+          .run(dept.shortName, dept.id);
       } else {
         const info = this.db.prepare('INSERT INTO departments (name, short_name, organization_id) VALUES (?, ?, ?)')
           .run(dept.name, dept.shortName, dept.organizationId);
         targetId = Number(info.lastInsertRowid);
       }
+
+      this.syncAllRelatedRecords();
 
       const row = this.db.prepare(`
         SELECT d.id, d.name, d.short_name as shortName, d.organization_id as organizationId, 
@@ -1105,6 +1230,17 @@ class SQLiteDatabaseManager {
 
   public async deleteDepartment(id: number): Promise<{ success: boolean }> {
     return await this.runWriteTransaction(() => {
+      const dept = this.db.prepare('SELECT short_name, organization_id FROM departments WHERE id = ?').get(id) as { short_name: string; organization_id: number } | undefined;
+      if (dept) {
+        const emps = this.db.prepare('SELECT count(*) as c FROM employees WHERE department_short_name = ? AND organization_id = ?').get(dept.short_name, dept.organization_id) as { c: number };
+        if (emps && emps.c > 0) {
+          throw new Error('Нельзя удалить подразделение, к которому привязаны сотрудники');
+        }
+      }
+      const docs = this.db.prepare('SELECT count(*) as c FROM documents WHERE sender_dept_id = ? OR recipient_dept_ids LIKE ?').get(id, `%${id}%`) as { c: number };
+      if (docs && docs.c > 0) {
+        throw new Error('Нельзя удалить подразделение, так как оно указано в зарегистрированных документах');
+      }
       this.db.prepare('DELETE FROM departments WHERE id = ?').run(id);
       return { success: true };
     });
@@ -1130,11 +1266,23 @@ class SQLiteDatabaseManager {
         this.db.prepare('UPDATE employees SET full_name = ?, position = ?, department_short_name = ?, organization_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
           .run(emp.fullName, emp.position || '', emp.departmentShortName, emp.organizationId, emp.id);
         targetId = emp.id;
+
+        // Каскадное обновление имени исполнителя в задачах
+        this.db.prepare('UPDATE tasks SET assignee_name = ?, updated_at = CURRENT_TIMESTAMP WHERE assignee_id = ?')
+          .run(emp.fullName, emp.id);
+
+        // Каскадное обновление имени сотрудника-отправителя и подписанта в документах
+        this.db.prepare('UPDATE documents SET sender_emp_name = ?, updated_at = CURRENT_TIMESTAMP WHERE sender_emp_id = ?')
+          .run(emp.fullName, emp.id);
+        this.db.prepare('UPDATE documents SET signatory_emp_name = ?, updated_at = CURRENT_TIMESTAMP WHERE signatory_emp_id = ?')
+          .run(emp.fullName, emp.id);
       } else {
         const info = this.db.prepare('INSERT INTO employees (full_name, position, department_short_name, organization_id) VALUES (?, ?, ?, ?)')
           .run(emp.fullName, emp.position || '', emp.departmentShortName, emp.organizationId);
         targetId = Number(info.lastInsertRowid);
       }
+
+      this.syncAllRelatedRecords();
 
       const row = this.db.prepare(`
         SELECT e.id, e.full_name as fullName, e.position as position, 
@@ -1151,6 +1299,14 @@ class SQLiteDatabaseManager {
 
   public async deleteEmployee(id: number): Promise<{ success: boolean }> {
     return await this.runWriteTransaction(() => {
+      const tasks = this.db.prepare('SELECT count(*) as c FROM tasks WHERE assignee_id = ?').get(id) as { c: number };
+      if (tasks && tasks.c > 0) {
+        throw new Error('Нельзя удалить сотрудника, так как на него назначены задачи');
+      }
+      const docs = this.db.prepare('SELECT count(*) as c FROM documents WHERE sender_emp_id = ? OR signatory_emp_id = ?').get(id, id) as { c: number };
+      if (docs && docs.c > 0) {
+        throw new Error('Нельзя удалить сотрудника, так как он указан в зарегистрированных документах');
+      }
       this.db.prepare('DELETE FROM employees WHERE id = ?').run(id);
       return { success: true };
     });
@@ -1168,10 +1324,13 @@ class SQLiteDatabaseManager {
       if (type.id) {
         this.db.prepare('UPDATE doc_types SET name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(type.name, type.id);
         targetId = type.id;
+        this.db.prepare('UPDATE documents SET updated_at = CURRENT_TIMESTAMP WHERE doc_type_id = ?').run(type.id);
       } else {
         const info = this.db.prepare('INSERT INTO doc_types (name) VALUES (?)').run(type.name);
         targetId = Number(info.lastInsertRowid);
       }
+
+      this.syncAllRelatedRecords();
 
       const row = this.db.prepare('SELECT id, name, created_at as createdAt, updated_at as updatedAt FROM doc_types WHERE id = ?').get(targetId) as DocumentType;
       if (!row) throw new Error('Не удалось прочитать сохраненный тип документа');
@@ -1181,6 +1340,10 @@ class SQLiteDatabaseManager {
 
   public async deleteDocumentType(id: number): Promise<{ success: boolean }> {
     return await this.runWriteTransaction(() => {
+      const docs = this.db.prepare('SELECT count(*) as c FROM documents WHERE doc_type_id = ?').get(id) as { c: number };
+      if (docs && docs.c > 0) {
+        throw new Error('Нельзя удалить тип документа, так как он используется в зарегистрированных документах');
+      }
       this.db.prepare('DELETE FROM doc_types WHERE id = ?').run(id);
       return { success: true };
     });
@@ -1198,10 +1361,13 @@ class SQLiteDatabaseManager {
       if (dir.id) {
         this.db.prepare('UPDATE directions SET name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(dir.name, dir.id);
         targetId = dir.id;
+        this.db.prepare('UPDATE documents SET updated_at = CURRENT_TIMESTAMP WHERE direction_id = ?').run(dir.id);
       } else {
         const info = this.db.prepare('INSERT INTO directions (name) VALUES (?)').run(dir.name);
         targetId = Number(info.lastInsertRowid);
       }
+
+      this.syncAllRelatedRecords();
 
       const row = this.db.prepare('SELECT id, name, created_at as createdAt, updated_at as updatedAt FROM directions WHERE id = ?').get(targetId) as Direction;
       if (!row) throw new Error('Не удалось прочитать сохраненное направление');
@@ -1211,6 +1377,10 @@ class SQLiteDatabaseManager {
 
   public async deleteDirection(id: number): Promise<{ success: boolean }> {
     return await this.runWriteTransaction(() => {
+      const docs = this.db.prepare('SELECT count(*) as c FROM documents WHERE direction_id = ?').get(id) as { c: number };
+      if (docs && docs.c > 0) {
+        throw new Error('Нельзя удалить направление, так как оно используется в документах');
+      }
       this.db.prepare('DELETE FROM directions WHERE id = ?').run(id);
       return { success: true };
     });
@@ -1236,9 +1406,12 @@ class SQLiteDatabaseManager {
              d.outgoing_number as outgoingNumber, d.outgoing_date as outgoingDate,
              d.incoming_number as incomingNumber, d.incoming_date as incomingDate,
              d.subject, d.sender_id as senderId, s.name as senderName,
-             d.sender_dept_id as senderDepartmentId, d.sender_dept_name as senderDepartmentName,
-             d.sender_emp_id as senderEmployeeId, d.sender_emp_name as senderEmployeeName,
-             d.signatory_emp_id as signatoryEmployeeId, d.signatory_emp_name as signatoryEmployeeName,
+             d.sender_dept_id as senderDepartmentId,
+             COALESCE(sdept.short_name, d.sender_dept_name) as senderDepartmentName,
+             d.sender_emp_id as senderEmployeeId,
+             COALESCE(semp.full_name, d.sender_emp_name) as senderEmployeeName,
+             d.signatory_emp_id as signatoryEmployeeId,
+             COALESCE(signemp.full_name, d.signatory_emp_name) as signatoryEmployeeName,
              d.recipient_id as recipientId, r.name as recipientName,
              d.recipient_ids as recipientIdsRaw,
              d.recipient_dept_ids as recipientDeptIdsRaw,
@@ -1251,6 +1424,9 @@ class SQLiteDatabaseManager {
       LEFT JOIN directions dir ON d.direction_id = dir.id
       LEFT JOIN organizations s ON d.sender_id = s.id
       LEFT JOIN organizations r ON d.recipient_id = r.id
+      LEFT JOIN departments sdept ON d.sender_dept_id = sdept.id
+      LEFT JOIN employees semp ON d.sender_emp_id = semp.id
+      LEFT JOIN employees signemp ON d.signatory_emp_id = signemp.id
       WHERE d.id = ?
     `).get(id);
 
@@ -1284,11 +1460,20 @@ class SQLiteDatabaseManager {
     }
 
     let recipientName = row.recipientName || '—';
-    if (recipientIds.length > 1) {
+    if (recipientIds.length > 0) {
       const orgs = this.getOrganizations();
       const names = recipientIds.map((rid) => orgs.find((o) => o.id === rid)?.name).filter(Boolean);
       if (names.length > 0) {
         recipientName = names.join(', ');
+      }
+    }
+
+    let recipientDepartmentNames = row.recipientDepartmentNames || undefined;
+    if (recipientDepartmentIds.length > 0) {
+      const depts = this.getDepartments();
+      const dNames = recipientDepartmentIds.map((did) => depts.find((dept) => dept.id === did)?.shortName).filter(Boolean);
+      if (dNames.length > 0) {
+        recipientDepartmentNames = dNames.join(', ');
       }
     }
 
@@ -1303,7 +1488,7 @@ class SQLiteDatabaseManager {
       recipientName,
       recipientIds,
       recipientDepartmentIds,
-      recipientDepartmentNames: row.recipientDepartmentNames || undefined,
+      recipientDepartmentNames,
       relatedDocIds,
     };
   }
@@ -1317,9 +1502,12 @@ class SQLiteDatabaseManager {
              d.outgoing_number as outgoingNumber, d.outgoing_date as outgoingDate,
              d.incoming_number as incomingNumber, d.incoming_date as incomingDate,
              d.subject, d.sender_id as senderId, s.name as senderName,
-             d.sender_dept_id as senderDepartmentId, d.sender_dept_name as senderDepartmentName,
-             d.sender_emp_id as senderEmployeeId, d.sender_emp_name as senderEmployeeName,
-             d.signatory_emp_id as signatoryEmployeeId, d.signatory_emp_name as signatoryEmployeeName,
+             d.sender_dept_id as senderDepartmentId,
+             COALESCE(sdept.short_name, d.sender_dept_name) as senderDepartmentName,
+             d.sender_emp_id as senderEmployeeId,
+             COALESCE(semp.full_name, d.sender_emp_name) as senderEmployeeName,
+             d.signatory_emp_id as signatoryEmployeeId,
+             COALESCE(signemp.full_name, d.signatory_emp_name) as signatoryEmployeeName,
              d.recipient_id as recipientId, r.name as recipientName,
              d.recipient_ids as recipientIdsRaw,
              d.recipient_dept_ids as recipientDeptIdsRaw,
@@ -1332,10 +1520,14 @@ class SQLiteDatabaseManager {
       LEFT JOIN directions dir ON d.direction_id = dir.id
       LEFT JOIN organizations s ON d.sender_id = s.id
       LEFT JOIN organizations r ON d.recipient_id = r.id
+      LEFT JOIN departments sdept ON d.sender_dept_id = sdept.id
+      LEFT JOIN employees semp ON d.sender_emp_id = semp.id
+      LEFT JOIN employees signemp ON d.signatory_emp_id = signemp.id
       ORDER BY d.id DESC
     `).all();
 
     const orgs = this.getOrganizations();
+    const depts = this.getDepartments();
 
     return rows.map((row: any) => {
       let recipientIds: number[] = [];
@@ -1366,10 +1558,18 @@ class SQLiteDatabaseManager {
       }
 
       let recipientName = row.recipientName || '—';
-      if (recipientIds.length > 1) {
+      if (recipientIds.length > 0) {
         const names = recipientIds.map((id) => orgs.find((o) => o.id === id)?.name).filter(Boolean);
         if (names.length > 0) {
           recipientName = names.join(', ');
+        }
+      }
+
+      let recipientDepartmentNames = row.recipientDepartmentNames || undefined;
+      if (recipientDepartmentIds.length > 0) {
+        const dNames = recipientDepartmentIds.map((did) => depts.find((dept) => dept.id === did)?.shortName).filter(Boolean);
+        if (dNames.length > 0) {
+          recipientDepartmentNames = dNames.join(', ');
         }
       }
 
@@ -1384,7 +1584,7 @@ class SQLiteDatabaseManager {
         recipientName,
         recipientIds,
         recipientDepartmentIds,
-        recipientDepartmentNames: row.recipientDepartmentNames || undefined,
+        recipientDepartmentNames,
         relatedDocIds,
       };
     });
@@ -1532,7 +1732,7 @@ class SQLiteDatabaseManager {
       isAccepted: Boolean(r.isAccepted),
       frozenDaysRemaining: r.frozenDaysRemaining !== null ? Number(r.frozenDaysRemaining) : null,
       assigneeId: r.assigneeId,
-      assigneeName: r.assigneeName || r.empFullName || '',
+      assigneeName: r.empFullName || r.assigneeName || '',
       result: r.result || '',
       createdAt: r.createdAt,
       updatedAt: r.updatedAt,
@@ -1568,7 +1768,7 @@ class SQLiteDatabaseManager {
       isAccepted: Boolean(r.isAccepted),
       frozenDaysRemaining: r.frozenDaysRemaining !== null ? Number(r.frozenDaysRemaining) : null,
       assigneeId: r.assigneeId,
-      assigneeName: r.assigneeName || r.empFullName || '',
+      assigneeName: r.empFullName || r.assigneeName || '',
       result: r.result || '',
       createdAt: r.createdAt,
       updatedAt: r.updatedAt,

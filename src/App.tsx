@@ -52,7 +52,7 @@ import { ZoomIndicatorHUD } from './components/ZoomIndicatorHUD';
 
 export default function App() {
   const { theme, setTheme } = useTheme();
-  const { zoom, zoomPercent, showHud, zoomIn, zoomOut, resetZoom } = useZoom();
+  const { zoom, zoomPercent, showHud, zoomIn, zoomOut, resetZoom, closeHud } = useZoom();
 
   // Основная навигация: 'documents' | 'directories' | 'tasks'
   const [activeTab, setActiveTab] = useState<'documents' | 'directories' | 'tasks'>('documents');
@@ -827,6 +827,7 @@ export default function App() {
         onZoomIn={zoomIn}
         onZoomOut={zoomOut}
         onResetZoom={resetZoom}
+        onClose={closeHud}
       />
 
     </div>
