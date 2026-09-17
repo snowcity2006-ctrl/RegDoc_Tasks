@@ -90,6 +90,14 @@ export const DocumentFormModal: React.FC<DocumentFormModalProps> = ({
   const [pendingEmployeeTarget, setPendingEmployeeTarget] = useState<'signatory' | 'executor' | null>(null);
   const prevEmployeesCountRef = useRef(employees.length);
 
+  // Отслеживание открытия модалки и предыдущих списков справочников, чтобы не сбрасывать форму при добавлении записей через плюсики
+  const prevIsOpenRef = useRef(false);
+  const prevInitialDataRef = useRef<DocumentRecord | null | undefined>(undefined);
+  const prevDocTypesCountRef = useRef(documentTypes.length);
+  const prevDirectionsCountRef = useRef(directions.length);
+  const prevOrgsCountRef = useRef(organizations.length);
+  const prevDeptsCountRef = useRef(departments.length);
+
   // Множественный выбор получателей (Организации)
   const [recipientIds, setRecipientIds] = useState<number[]>([]);
 
@@ -124,56 +132,114 @@ export const DocumentFormModal: React.FC<DocumentFormModalProps> = ({
   };
 
   useEffect(() => {
-    if (initialData) {
-      setDocTypeId(initialData.docTypeId || '');
-      setDirectionId(initialData.directionId || '');
-      setOutgoingNumber(initialData.outgoingNumber || '');
-      setOutgoingDate(initialData.outgoingDate || '');
-      setIncomingNumber(initialData.incomingNumber || '');
-      setIncomingDate(initialData.incomingDate || '');
-      setSubject(initialData.subject || '');
-      setSenderId(initialData.senderId || '');
-      setSenderDepartmentId(initialData.senderDepartmentId || '');
-      setSenderEmployeeId(initialData.senderEmployeeId || '');
-      setSignatoryEmployeeId(initialData.signatoryEmployeeId || '');
+    // Если модальное окно закрыто, обновляем ref состояния и ничего не сбрасываем
+    if (!isOpen) {
+      prevIsOpenRef.current = false;
+      prevInitialDataRef.current = undefined;
+      return;
+    }
 
-      // Инициализация получателей
-      if (initialData.recipientIds && initialData.recipientIds.length > 0) {
-        setRecipientIds(initialData.recipientIds);
-      } else if (initialData.recipientId) {
-        setRecipientIds([initialData.recipientId]);
+    const isNewlyOpened = !prevIsOpenRef.current && isOpen;
+    const isDataChanged = initialData !== prevInitialDataRef.current;
+
+    // Сбрасываем форму ТОЛЬКО при первичном открытии модального окна или при смене редактируемого документа
+    if (isNewlyOpened || isDataChanged) {
+      if (initialData) {
+        setDocTypeId(initialData.docTypeId || '');
+        setDirectionId(initialData.directionId || '');
+        setOutgoingNumber(initialData.outgoingNumber || '');
+        setOutgoingDate(initialData.outgoingDate || '');
+        setIncomingNumber(initialData.incomingNumber || '');
+        setIncomingDate(initialData.incomingDate || '');
+        setSubject(initialData.subject || '');
+        setSenderId(initialData.senderId || '');
+        setSenderDepartmentId(initialData.senderDepartmentId || '');
+        setSenderEmployeeId(initialData.senderEmployeeId || '');
+        setSignatoryEmployeeId(initialData.signatoryEmployeeId || '');
+
+        // Инициализация получателей
+        if (initialData.recipientIds && initialData.recipientIds.length > 0) {
+          setRecipientIds(initialData.recipientIds);
+        } else if (initialData.recipientId) {
+          setRecipientIds([initialData.recipientId]);
+        } else {
+          setRecipientIds([]);
+        }
+
+        // Инициализация структурных подразделений получателя
+        setRecipientDepartmentIds(initialData.recipientDepartmentIds || []);
+
+        setFilePath(initialData.filePath || '');
+        setSedUrl(initialData.sedUrl || '');
+        setComments(initialData.comments || '');
+        setRelatedDocIds(initialData.relatedDocIds || []);
       } else {
+        setDocTypeId(documentTypes.length > 0 ? documentTypes[0].id : '');
+        setDirectionId(directions.length > 0 ? directions[0].id : '');
+        setOutgoingNumber('');
+        setOutgoingDate('');
+        setIncomingNumber('');
+        setIncomingDate(new Date().toISOString().slice(0, 10)); // Текущая дата по умолчанию
+        setSubject('');
+        setSenderId('');
+        setSenderDepartmentId('');
+        setSenderEmployeeId('');
+        setSignatoryEmployeeId('');
         setRecipientIds([]);
+        setRecipientDepartmentIds([]);
+        setFilePath('');
+        setSedUrl('');
+        setComments('');
+        setRelatedDocIds([]);
+      }
+      setError(null);
+
+      // Синхронизируем начальное количество элементов в справочниках при открытии
+      prevDocTypesCountRef.current = documentTypes.length;
+      prevDirectionsCountRef.current = directions.length;
+      prevOrgsCountRef.current = organizations.length;
+      prevDeptsCountRef.current = departments.length;
+      prevEmployeesCountRef.current = employees.length;
+    } else {
+      // Модальное окно УЖЕ открыто и пользователь вносит данные!
+      // Если в этот момент обновились справочники (через нажатие плюсика), НЕ сбрасываем поля формы,
+      // а наоборот: если добавился новый тип документа или направление, авто-выбираем его.
+      if (documentTypes.length > prevDocTypesCountRef.current) {
+        const newestType = documentTypes[documentTypes.length - 1];
+        if (newestType) {
+          setDocTypeId(newestType.id);
+        }
+      }
+      if (directions.length > prevDirectionsCountRef.current) {
+        const newestDirection = directions[directions.length - 1];
+        if (newestDirection) {
+          setDirectionId(newestDirection.id);
+        }
+      }
+      // Если добавилась новая организация и отправитель ещё не был выбран — подставляем её
+      if (organizations.length > prevOrgsCountRef.current) {
+        const newestOrg = organizations[organizations.length - 1];
+        if (newestOrg) {
+          setSenderId((prev) => (prev === '' ? newestOrg.id : prev));
+        }
+      }
+      // Если добавилось подразделение и СП отправителя не выбрано — подставляем
+      if (departments.length > prevDeptsCountRef.current) {
+        const newestDept = departments[departments.length - 1];
+        if (newestDept) {
+          setSenderDepartmentId((prev) => (prev === '' ? newestDept.id : prev));
+        }
       }
 
-      // Инициализация структурных подразделений получателя
-      setRecipientDepartmentIds(initialData.recipientDepartmentIds || []);
-
-      setFilePath(initialData.filePath || '');
-      setSedUrl(initialData.sedUrl || '');
-      setComments(initialData.comments || '');
-      setRelatedDocIds(initialData.relatedDocIds || []);
-    } else {
-      setDocTypeId(documentTypes.length > 0 ? documentTypes[0].id : '');
-      setDirectionId(directions.length > 0 ? directions[0].id : '');
-      setOutgoingNumber('');
-      setOutgoingDate('');
-      setIncomingNumber('');
-      setIncomingDate(new Date().toISOString().slice(0, 10)); // Текущая дата по умолчанию
-      setSubject('');
-      setSenderId('');
-      setSenderDepartmentId('');
-      setSenderEmployeeId('');
-      setSignatoryEmployeeId('');
-      setRecipientIds([]);
-      setRecipientDepartmentIds([]);
-      setFilePath('');
-      setSedUrl('');
-      setComments('');
-      setRelatedDocIds([]);
+      prevDocTypesCountRef.current = documentTypes.length;
+      prevDirectionsCountRef.current = directions.length;
+      prevOrgsCountRef.current = organizations.length;
+      prevDeptsCountRef.current = departments.length;
     }
-    setError(null);
-  }, [initialData, isOpen, documentTypes, directions]);
+
+    prevIsOpenRef.current = isOpen;
+    prevInitialDataRef.current = initialData;
+  }, [initialData, isOpen, documentTypes, directions, organizations, departments]);
 
   // Автоматический выбор добавленного сотрудника (для «Подписал» или «Исполнитель»)
   useEffect(() => {
